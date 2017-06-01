@@ -46,7 +46,7 @@ def readSpotsCoordinates(filename):
                 temp_list = []
     return coordinate_lists
 
-img1 = cv2.imread('parking_example.png', cv2.IMREAD_COLOR)
-#getSpotsCooridnatesFromImage(img1,2)
-coordinates_lists = readSpotsCoordinates("coordinates.txt")
+img1 = cv2.imread('parkingLot2.jpg.png', cv2.IMREAD_COLOR)
+getSpotsCoordiantesFromImage(img1,2)
+#coordinates_lists = readSpotsCoordinates("coordinates.txt")
 print coordinates_lists

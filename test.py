@@ -19,26 +19,31 @@ def placeRects(image):
     cv2.destroyAllWindows()
     return
 
+#called when mouse is pressed
 def place_rect(event,x,y,flags,param):
     if event == cv2.EVENT_FLAG_LBUTTON:
-        cv2.circle(img,(x,y),5,(255,0,0),-1)
+        cv2.circle(img,(x,y),3,(255,0,0),-1)
         rectPoints.append([x,y])
         print(rectPoints)
     elif event == cv2.EVENT_FLAG_RBUTTON:
         pts = np.array(rectPoints,np.int32).reshape((-1,1,2))
-        cv2.polylines(img,[pts],True,(0,255,255))
+        cv2.polylines(img,[pts],True,(255,255,255))
         print(POINTS)
 
-# Load an color image in grayscale
+
 img = cv2.imread('parkingLot2.jpg')
+img2 = cv2.imread('parkingLot2.jpg')
+
+#place polygons on image img
 placeRects(img)
 
+
+
+# Load a color image in grayscale
 img = cv2.imread('parkingLot2.jpg')
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 plt.subplot(151),plt.imshow(img,cmap = 'gray')
 plt.title('Gray'), plt.xticks([]), plt.yticks([])
-
-#print(gray[10,10])
 
 
 # apply blur and threshold
