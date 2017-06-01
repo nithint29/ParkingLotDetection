@@ -20,12 +20,13 @@ def getSpotsCoordiantesFromImage(img, num_space) :
 ''' get rotate rectangle '''
 def getRotateRect(img, cooridnate_lists):
     warped_img_lists = []
-    for coordinate in cooridnate_lists:
+    for coordinate in cooridnate_lists :
         warped = four_point_transform(img, coordinate)
         plt.imshow(warped, cmap = 'gray', interpolation = 'bicubic')
         plt.xticks([]), plt.yticks([])
         plt.show()
-    return
+        warped_img_lists.append(warped)
+    return warped_img_lists
 
 ''' return warped image by 4 points'''
 def four_point_transform(image, coordinate):
@@ -89,12 +90,21 @@ def readSpotsCoordinates(filename):
     print("read coordinates lists successfully")
     return coordinate_lists
 
+''' save image list with path'''
+def saveImageList(img_list, save_path):
+    for i, img in enumerate(img_list):
+        print i
+        print(save_path + "/spot_" + str(i))
+        cv2.imwrite(save_path + "/spot_" + str(i) + ".jpg", img)
+    print("save N = " + str(len(img_list.length)) + "in path " + save_path)
+
 def main():
     img1 = cv2.imread('parking_example.png', cv2.IMREAD_COLOR)
     num_of_lots = 2
-    getSpotsCoordiantesFromImage(img1,num_of_lots)
+#    getSpotsCoordiantesFromImage(img1,num_of_lots)
     coordinate_lists = readSpotsCoordinates("coordinates.txt")
-    getRotateRect(img1,coordinate_lists)
+    warp_img_list = getRotateRect(img1,coordinate_lists)
+    saveImageList(warp_img_list, "spots_folder")
     print coordinate_lists
 
 if __name__ == '__main__':
