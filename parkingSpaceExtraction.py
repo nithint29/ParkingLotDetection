@@ -93,10 +93,8 @@ def readSpotsCoordinates(filename):
 ''' save image list with path'''
 def saveImageList(img_list, save_path):
     for i, img in enumerate(img_list):
-        print i
-        print(save_path + "/spot_" + str(i))
         cv2.imwrite(save_path + "/spot_" + str(i) + ".jpg", img)
-    print("save N = " + str(len(img_list.length)) + "in path " + save_path)
+    print("save N = " + str(len(img_list)) + " in path " + save_path)
 
 def main():
     img1 = cv2.imread('parking_example.png', cv2.IMREAD_COLOR)
@@ -105,7 +103,6 @@ def main():
     coordinate_lists = readSpotsCoordinates("coordinates.txt")
     warp_img_list = getRotateRect(img1,coordinate_lists)
     saveImageList(warp_img_list, "spots_folder")
-    print coordinate_lists
 
 if __name__ == '__main__':
     main()
