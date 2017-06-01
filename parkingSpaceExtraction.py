@@ -64,7 +64,7 @@ def four_point_transform(image, coordinate):
 
 ''' save the coordinate lists into txt file'''
 def saveSpotsCoordinates(coordinate_lists):
-    file = open("coordinates.txt","w")
+    file = open("coordinates.txt", "w")
     for coordinate in coordinate_lists:
         for t in coordinate:
             file.write(' '.join(str(s) for s in t) + '\n')
@@ -98,8 +98,9 @@ def saveImageList(img_list, save_path):
 
 def main():
     img1 = cv2.imread('parking_example.png', cv2.IMREAD_COLOR)
+    #edit num_of_lots to determine how many
     num_of_lots = 2
-#    getSpotsCoordiantesFromImage(img1,num_of_lots)
+    getSpotsCoordiantesFromImage(img1,num_of_lots)
     coordinate_lists = readSpotsCoordinates("coordinates.txt")
     warp_img_list = getRotateRect(img1,coordinate_lists)
     saveImageList(warp_img_list, "spots_folder")
