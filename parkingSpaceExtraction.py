@@ -97,7 +97,7 @@ def saveImageList(img_list, save_path):
     print("save N = " + str(len(img_list)) + " in path " + save_path)
 
 def main():
-    img1 = cv2.imread('parking_example.png', cv2.IMREAD_COLOR)
+    img1 = cv2.imread('parkingLot.jpg', cv2.IMREAD_COLOR)
     #edit num_of_lots to determine how many
     num_of_lots = 2
     getSpotsCoordiantesFromImage(img1,num_of_lots)
