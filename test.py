@@ -1,26 +1,48 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
+import collections
 
-
+POINTS = [];
+rectPoints  = [];
 DELAY_BLUR = 500;
+global img
+
+def placeRects(image):
+    cv2.namedWindow('image')
+    cv2.setMouseCallback('image', place_rect)
+
+    while (1):
+        cv2.imshow('image', image)
+        if cv2.waitKey(20) & 0xFF == 27:
+            break
+    cv2.destroyAllWindows()
+    return
+
+def place_rect(event,x,y,flags,param):
+    if event == cv2.EVENT_FLAG_LBUTTON:
+        cv2.circle(img,(x,y),5,(255,0,0),-1)
+        rectPoints.append([x,y])
+        print(rectPoints)
+    elif event == cv2.EVENT_FLAG_RBUTTON:
+        pts = np.array(rectPoints,np.int32).reshape((-1,1,2))
+        cv2.polylines(img,[pts],True,(0,255,255))
+        print(POINTS)
 
 # Load an color image in grayscale
 img = cv2.imread('parkingLot2.jpg')
-img2 = cv2.imread('parkingLot2.jpg')
+placeRects(img)
+
+img = cv2.imread('parkingLot2.jpg')
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 plt.subplot(151),plt.imshow(img,cmap = 'gray')
 plt.title('Gray'), plt.xticks([]), plt.yticks([])
 
-print(gray[10,10])
-
-
+#print(gray[10,10])
 
 
 # apply blur and threshold
 gray = cv2.GaussianBlur(gray,(15,15),0)
-cv2.imshow('image1',gray)
-cv2.waitKey(0)
 plt.subplot(152),plt.imshow(img,cmap = 'gray')
 plt.title('Blurred'), plt.xticks([]), plt.yticks([])
 
@@ -44,6 +66,7 @@ print(ret)
 # find contours
 _, contours, _= cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+
 validCont = []
 biggest = None
 max_area = 0
@@ -58,6 +81,10 @@ for i in contours:
                         max_area = area
 
 print (max_area)
+mask = np.zeros(img.shape, np.uint8)
+cv2.drawContours(mask, validCont, -1, (255,255,255),-1)
+cv2.imshow('image',mask)
+
 cv2.drawContours(img, validCont, -1, (0,255,0), 3)
 plt.subplot(154),plt.imshow(img,cmap = 'gray')
 plt.title('Contours'), plt.xticks([]), plt.yticks([])
