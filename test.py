@@ -31,8 +31,8 @@ def place_rect(event,x,y,flags,param):
         print(POINTS)
 
 
-img = cv2.imread('parkingLot2.jpg')
-img2 = cv2.imread('parkingLot2.jpg')
+img = cv2.imread('parkingLot.jpg')
+img2 = cv2.imread('parkingLot.jpg')
 
 #place polygons on image img
 placeRects(img)
@@ -40,7 +40,7 @@ placeRects(img)
 
 
 # Load a color image in grayscale
-img = cv2.imread('parkingLot2.jpg')
+img = cv2.imread('parkingLot.jpg')
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 plt.subplot(151),plt.imshow(img,cmap = 'gray')
 plt.title('Gray'), plt.xticks([]), plt.yticks([])
@@ -86,17 +86,20 @@ for i in contours:
                         max_area = area
 
 print (max_area)
+
+#create a mask from contours
 mask = np.zeros(img.shape, np.uint8)
 cv2.drawContours(mask, validCont, -1, (255,255,255),-1)
-cv2.imshow('image',mask)
+cv2.imshow('Mask',mask)
 
 cv2.drawContours(img, validCont, -1, (0,255,0), 3)
 plt.subplot(154),plt.imshow(img,cmap = 'gray')
 plt.title('Contours'), plt.xticks([]), plt.yticks([])
 
 
+#show contours
 #cv2.namedWindow('image1', cv2.WINDOW_NORMAL)
-cv2.imshow('image1',img)
+cv2.imshow('Contours',img)
 cv2.waitKey(0)
 
 #edge detection from original
