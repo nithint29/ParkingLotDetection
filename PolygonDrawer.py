@@ -13,6 +13,7 @@ class PolygonDrawer(object):
         self.windowName = windowName
         self.POINTS = []
         self.i = 0
+        self.spaceMap = {}
 
 
 
@@ -64,6 +65,7 @@ class PolygonDrawer(object):
                 self.saveSpotsCoordinates()
                 break
             elif key & 0xFF == 32:
+                self.readSpotsCoordinates("coordinates.txt")
                 self.loadPointsOntoImage()
 
         cv2.destroyAllWindows()
@@ -72,11 +74,12 @@ class PolygonDrawer(object):
 
     #
     def loadPointsOntoImage(self):
+        self.image = np.copy(self.originalImage)
         for polygon in self.POINTS:
             if(polygon !=None):
                 for point in polygon:
-                    self.image = np.copy(self.originalImage)
-                    cv2.circle(self.image, (point[0],point[1]), 5, (255, 0, 0), -1)
+
+                    cv2.circle(self.image, (int(point[0]),int(point[1])), 5, (255, 0, 0), -1)
 
     def four_point_transform(self, coordinate):
         (tl, tr, br, bl) = coordinate
@@ -125,7 +128,7 @@ class PolygonDrawer(object):
 
 
 
-    def loadFromText(self):
+    def loadFromDict(self):
         print "hi"
 
     #save polygon data to text file
@@ -154,6 +157,7 @@ class PolygonDrawer(object):
                     self.POINTS.append(temp_list)
                     temp_list = []
         print("read coordinates lists successfully")
+        print(self.POINTS)
         return self.POINTS
 
     def saveImageList(self,img_list, save_path):
