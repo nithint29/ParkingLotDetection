@@ -191,7 +191,7 @@ class PolygonDrawer(object):
 
 if __name__ == "__main__":
     #print("hello world")
-    img = cv2.imread("parking_example.png")
+    img = cv2.imread("CARS.jpg")
     p = PolygonDrawer("poly",img,"coordinates.txt","spots_folder")
     p.run()
 
