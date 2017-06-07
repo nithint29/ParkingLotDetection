@@ -189,10 +189,9 @@ class PolygonDrawer(object):
         if(folderName != None):
             self.PICTURE_FOLDER = folderName
 
-
 if __name__ == "__main__":
     #print("hello world")
-    img = cv2.imread("parkingLot.jpg")
+    img = cv2.imread("parking_example.png")
     p = PolygonDrawer("poly",img,"coordinates.txt","spots_folder")
     p.run()
 
