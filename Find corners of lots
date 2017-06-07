@@ -1,0 +1,47 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+using namespace cv;
+using namespace std;
+int main()
+{
+	cv::Mat img = cv::imread("l2.jpg");
+	cv::Mat t1, t2,t3;
+	cv::Mat kern2 = (Mat_<char>(5, 5) << -1, -1, -1, -1, -1,
+										-1, -1, -1, -1, -1,
+										-1, -1, 0, -1, -1,
+										-1, 1, 1, -1, -1,
+										1, 1, 1, -1, -1);
+
+	cv::Mat kern3 = (Mat_<char>(5, 5) << 0, 0, 0, 0, 0,
+										-1, 0, 1, 0, 0,
+										-1, -1, 1, -1, -1,
+										0, 0, 1, 0, -1,
+										0, 0, 0, 0, 0);
+
+	cv::Mat kern4 = (Mat_<char>(5, 5) << -1, -1, 1, 1, 1,
+										-1, -1, 1, 1, -1,
+										-1, -1, 0, -1, -1,
+										-1, -1, -1, -1, -1,
+										-1, -1, -1, -1, -1);
+
+	cv::filter2D(img, t1, -1, kern2);
+	cv::filter2D(img, t2, -1, kern4);
+	//cv::erode(img, img, getStructuringElement(cv::MORPH_CROSS,cv::Size(3,3)));
+	//cv::dilate(img, img, Mat());
+	//cv::filter2D(img, img, -1, kern3);
+	cv::addWeighted(t1, 1, t2, 1, 0, t3);
+	namedWindow("top", CV_WINDOW_AUTOSIZE);
+	cv::imshow("top", t1);
+	namedWindow("bot", CV_WINDOW_AUTOSIZE);
+	cv::imshow("bot", t2);
+	namedWindow("add", CV_WINDOW_AUTOSIZE);
+	cv::imshow("add", t3);
+	waitKey(0);
+	cvDestroyAllWindows();
+	return 0;
+
+}
