@@ -1,0 +1,21 @@
+cv::VideoCapture cap;
+	cap.open("rtsp://bigbrother.winlab.rutgers.edu/stream1");
+	if (!cap.isOpened()) {
+		cout << "Can't Open Stream" << endl;
+		return -1;
+	}
+
+	namedWindow("test", CV_WINDOW_AUTOSIZE);
+	while (1) {
+		cv::Mat frame;
+		bool success = cap.read(frame);
+		if (!success) {
+			cout << "Can't do a frame" << endl;
+		}
+		cv::imshow("test", frame);
+		if (waitKey(30) == 27) {
+			cout << "esc did a push" << endl;
+			break;
+		}
+	}
+}
