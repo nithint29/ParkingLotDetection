@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 import errno
+import Prepare
 
 class PolygonDrawer(object):
     polyPoints = [None]*4
@@ -16,7 +17,7 @@ class PolygonDrawer(object):
         self.windowName = windowName
         self.POINTS = []
         self.i = 0
-        self.spaceMap = {}
+        self.pictureMap = {}
         self.FILE_NAME = fileName
         self.PICTURE_FOLDER = folderName
         #self.ensure_dir(self.PICTURE_FOLDER)
@@ -72,6 +73,8 @@ class PolygonDrawer(object):
                 self.saveSpotsCoordinates()
                 self.saveImageList(self.getRotateRect())
                 break
+
+            #place points from text file onto image
             elif key & 0xFF == 32:
                 self.readSpotsCoordinates(self.FILE_NAME)
                 self.loadPointsOntoImage()
@@ -125,8 +128,8 @@ class PolygonDrawer(object):
     #creates list of warped images from POINTS
     def getRotateRect(self):
         warped_img_lists = []
-        for coordinate in self.POINTS:
-            warped = self.four_point_transform(coordinate)
+        for polygon in self.POINTS:
+            warped = self.four_point_transform(polygon)
             # plt.imshow(warped, cmap='gray', interpolation='bicubic')
             # plt.xticks([]), plt.yticks([])
             # plt.show()
@@ -189,10 +192,31 @@ class PolygonDrawer(object):
         if(folderName != None):
             self.PICTURE_FOLDER = folderName
 
+
+    #creates a dictionary of images using coordinates text
+    def createPictureLibrary(self):
+        index = 0
+        for polygon in self.POINTS:
+            warped = self.four_point_transform(polygon)
+            # plt.imshow(warped, cmap='gray', interpolation='bicubic')
+            # plt.xticks([]), plt.yticks([])
+            # plt.show()
+            self.pictureMap[index] = [polygon,warped]
+            index+=1
+        return self.pictureMap
+
+
+
+
 if __name__ == "__main__":
     #print("hello world")
     img = cv2.imread("CARS.jpg")
     p = PolygonDrawer("poly",img,"coordinates.txt","spots_folder")
     p.run()
+    dict = p.createPictureLibrary()
+    print "Dictionary[0]: ",dict[1][0]
+    cv2.imshow("lot",dict[2][1])
+    cv2.waitKey(0)
+    Prepare.readFromDict(dict)
 
 

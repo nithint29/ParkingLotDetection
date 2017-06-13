@@ -40,7 +40,7 @@ placeRects(img)
 
 
 # Load a color image in grayscale
-img = cv2.imread('CARS.jpg')
+img = cv2.imread('output.jpg')
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 plt.subplot(151),plt.imshow(img,cmap = 'gray')
 plt.title('Gray'), plt.xticks([]), plt.yticks([])
