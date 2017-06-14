@@ -63,7 +63,7 @@ def displayHist(imgList,isColor,empty,occupied,method):
             # else:
             #     print "Occupied: ", coeff
         #if(isColor == False):
-        print histClassify(img,empty,occupied,method)
+        #print histClassify(img,empty,occupied,method)
         plt.show()
 
 
@@ -104,9 +104,9 @@ def computePixels(imgList):
 
 
 
-# images = loadFolder("dataset/empty")
-# computePixels(images)
-#displayHist(images,isColor = False)
+images = loadFolder("dataset/occupied")
+computePixels(images)
+displayHist(images,True,None,None,None)
 
 #analyze using histograms
 emptyLot = cv2.imread("dataset/empty/26.jpg")
@@ -128,31 +128,43 @@ OPENCV_METHODS = [
 
 emptySet = loadFolder("dataset/empty")
 occupiedSet = loadFolder("dataset/occupied")
-#emptySet = emptySet[60:130]
-#occupiedSet = occupiedSet[60:130]
+emptySet = emptySet[0:150]
+occupiedSet = occupiedSet[0:150]
 #displayHist(emptySet,True,emptyLot,occupiedLot,cv2.HISTCMP_BHATTACHARYYA)
 
 binVals = [16,32,64,128]
 color = [False]
-combs = list(itertools.product(binVals,color,OPENCV_METHODS))
+combs = list(itertools.product(OPENCV_METHODS,binVals,color))
 
-methodAccuracies = {}
-for name,method in OPENCV_METHODS:
+methodAccuracies = []
+for comb in combs:
+    name,method = comb[0]
+    binNum = comb[1]
+    color = comb[2]
     numCorrectE =0
     for image in emptySet:
-        if(histClassify(image,emptyLot,occupiedLot,method,False,256)=="empty"):
+        if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="empty"):
             numCorrectE = numCorrectE+1
     print name + ": Empty Space Accuracy = "+ str(numCorrectE*1.0/len(emptySet))
 
     numCorrectO = 0
     for image in occupiedSet:
-        if(histClassify(image,emptyLot,occupiedLot,method,False,256)=="occupied"):
+        if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="occupied"):
             numCorrectO = numCorrectO+1
     print name + ": Occupied Space Accuracy = "+ str(numCorrectO*1.0/len(occupiedSet))
 
     print "Overall Accuracy: " + str((numCorrectE*1.0/len(emptySet)+numCorrectO*1.0/len(occupiedSet))/2.0)
-    methodAccuracies[name] = [numCorrectE*1.0/len(emptySet),numCorrectO*1.0/len(occupiedSet)]
+    methodAccuracies.append((comb,[numCorrectE*1.0/len(emptySet),numCorrectO*1.0/len(occupiedSet)]))
 
+bestAcc = 0
+bestComb = None
+for value in methodAccuracies:
+    accuracy = (value[1][0]+value[1][1])/2.0
+    if(accuracy>bestAcc):
+        bestAcc = accuracy
+        bestComb = value
+
+print bestComb
 
 
 
