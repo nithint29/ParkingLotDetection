@@ -29,7 +29,7 @@ def loadResizeSave(srcPath, savePath):
 
 
 if __name__ == "__main__":
-    loadResizeSave("", "")
+    loadResizeSave("dataset/occupied", "dataset/occupied")
 
     # svm = cv2.ml.SVM_create()
     # svm.setType(cv2.ml.SVM_C_SVC)
