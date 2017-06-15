@@ -27,8 +27,8 @@ def loadFolder(folderPath):
     img_list = []
 
     for files in glob.glob(folderPath + "/*.jpg"):
-        file = cv2.imread(files)
-        img = cv2.resize(file, (400, 400), interpolation=cv2.INTER_AREA)
+        img = cv2.imread(files)
+        img = cv2.resize(img, (400, 400), interpolation=cv2.INTER_AREA)
         #img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
         img_list.append(img)
 
@@ -103,68 +103,68 @@ def computePixels(imgList):
     return pixels
 
 
+if __name__ == "__main__":
+    # images = loadFolder("dataset/occupied")
+    # computePixels(images)
+    # displayHist(images,True,None,None,None)
 
-images = loadFolder("dataset/occupied")
-computePixels(images)
-displayHist(images,True,None,None,None)
+    #analyze using histograms
+    emptyLot = cv2.imread("dataset/empty/26.jpg")
+    emptyLot = cv2.resize(emptyLot, (400,400), interpolation=cv2.INTER_AREA)
+    #emptyLot = cv2.cvtColor(emptyLot,cv2.COLOR_BGR2GRAY)
+    occupiedLot = cv2.imread("dataset/occupied/6.jpg")
+    occupiedLot = cv2.resize(occupiedLot, (400,400), interpolation=cv2.INTER_AREA)
+    #occupiedLot = cv2.cvtColor(occupiedLot,cv2.COLOR_BGR2GRAY)
 
-#analyze using histograms
-emptyLot = cv2.imread("dataset/empty/26.jpg")
-emptyLot = cv2.resize(emptyLot, (400,400), interpolation=cv2.INTER_AREA)
-#emptyLot = cv2.cvtColor(emptyLot,cv2.COLOR_BGR2GRAY)
-occupiedLot = cv2.imread("dataset/occupied/6.jpg")
-occupiedLot = cv2.resize(occupiedLot, (400,400), interpolation=cv2.INTER_AREA)
-#occupiedLot = cv2.cvtColor(occupiedLot,cv2.COLOR_BGR2GRAY)
+    #emptyLot = cv2.equalizeHist(emptyLot)
+    #emptyHist = cv2.calcHist([emptyLot], [0], None, [256], [0, 256])
 
-#emptyLot = cv2.equalizeHist(emptyLot)
-#emptyHist = cv2.calcHist([emptyLot], [0], None, [256], [0, 256])
+    OPENCV_METHODS = [
+        ("Correlation", cv2.HISTCMP_CORREL),
+        ("Chi-Squared", cv2.HISTCMP_CHISQR),
+        ("Intersection", cv2.HISTCMP_INTERSECT),
+        ("Hellinger", cv2.HISTCMP_HELLINGER),
+        ("Chi-Squared Alt",cv2.HISTCMP_CHISQR_ALT) ]
 
-OPENCV_METHODS = [
-	("Correlation", cv2.HISTCMP_CORREL),
-	("Chi-Squared", cv2.HISTCMP_CHISQR),
-	("Intersection", cv2.HISTCMP_INTERSECT),
-	("Hellinger", cv2.HISTCMP_HELLINGER),
-    ("Chi-Squared Alt",cv2.HISTCMP_CHISQR_ALT) ]
+    emptySet = loadFolder("dataset/empty")
+    occupiedSet = loadFolder("dataset/occupied")
+    emptySet = emptySet[0:150]
+    occupiedSet = occupiedSet[0:150]
+    #displayHist(emptySet,True,emptyLot,occupiedLot,cv2.HISTCMP_BHATTACHARYYA)
 
-emptySet = loadFolder("dataset/empty")
-occupiedSet = loadFolder("dataset/occupied")
-emptySet = emptySet[0:150]
-occupiedSet = occupiedSet[0:150]
-#displayHist(emptySet,True,emptyLot,occupiedLot,cv2.HISTCMP_BHATTACHARYYA)
+    binVals = [16,32,64,128]
+    color = [False]
+    combs = list(itertools.product(OPENCV_METHODS,binVals,color))
 
-binVals = [16,32,64,128]
-color = [False]
-combs = list(itertools.product(OPENCV_METHODS,binVals,color))
+    methodAccuracies = []
+    for comb in combs:
+        name,method = comb[0]
+        binNum = comb[1]
+        color = comb[2]
+        numCorrectE =0
+        for image in emptySet:
+            if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="empty"):
+                numCorrectE = numCorrectE+1
+        print name + ": Empty Space Accuracy = "+ str(numCorrectE*1.0/len(emptySet))
 
-methodAccuracies = []
-for comb in combs:
-    name,method = comb[0]
-    binNum = comb[1]
-    color = comb[2]
-    numCorrectE =0
-    for image in emptySet:
-        if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="empty"):
-            numCorrectE = numCorrectE+1
-    print name + ": Empty Space Accuracy = "+ str(numCorrectE*1.0/len(emptySet))
+        numCorrectO = 0
+        for image in occupiedSet:
+            if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="occupied"):
+                numCorrectO = numCorrectO+1
+        print name + ": Occupied Space Accuracy = "+ str(numCorrectO*1.0/len(occupiedSet))
 
-    numCorrectO = 0
-    for image in occupiedSet:
-        if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="occupied"):
-            numCorrectO = numCorrectO+1
-    print name + ": Occupied Space Accuracy = "+ str(numCorrectO*1.0/len(occupiedSet))
+        print "Overall Accuracy: " + str((numCorrectE*1.0/len(emptySet)+numCorrectO*1.0/len(occupiedSet))/2.0)
+        methodAccuracies.append((comb,[numCorrectE*1.0/len(emptySet),numCorrectO*1.0/len(occupiedSet)]))
 
-    print "Overall Accuracy: " + str((numCorrectE*1.0/len(emptySet)+numCorrectO*1.0/len(occupiedSet))/2.0)
-    methodAccuracies.append((comb,[numCorrectE*1.0/len(emptySet),numCorrectO*1.0/len(occupiedSet)]))
+    bestAcc = 0
+    bestComb = None
+    for value in methodAccuracies:
+        accuracy = (value[1][0]+value[1][1])/2.0
+        if(accuracy>bestAcc):
+            bestAcc = accuracy
+            bestComb = value
 
-bestAcc = 0
-bestComb = None
-for value in methodAccuracies:
-    accuracy = (value[1][0]+value[1][1])/2.0
-    if(accuracy>bestAcc):
-        bestAcc = accuracy
-        bestComb = value
-
-print bestComb
+    print bestComb
 
 
 
