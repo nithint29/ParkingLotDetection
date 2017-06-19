@@ -4,8 +4,8 @@ import glob
 from matplotlib import pyplot as plt
 import os
 
-HEIGHT = 200
-WIDTH = 124
+HEIGHT = 400
+WIDTH = 400
 
 ''' read images from a directory '''
 def loadFolder(folderPath):
@@ -29,6 +29,7 @@ def loadResizeSave(srcPath, savePath):
 
 
 if __name__ == "__main__":
+    loadResizeSave("dataset/empty", "dataset/empty")
     loadResizeSave("dataset/occupied", "dataset/occupied")
 
     # svm = cv2.ml.SVM_create()

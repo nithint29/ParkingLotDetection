@@ -4,6 +4,7 @@ import cv2
 import os
 import glob
 import itertools
+import math
 
 def readFromDict(imageDict):
     for i in imageDict:
@@ -28,6 +29,7 @@ def loadFolder(folderPath):
 
     for files in glob.glob(folderPath + "/*.jpg"):
         img = cv2.imread(files)
+        img = cv2.GaussianBlur(img, (15, 15), 0)
         img = cv2.resize(img, (400, 400), interpolation=cv2.INTER_AREA)
         #img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
         img_list.append(img)
@@ -70,16 +72,16 @@ def displayHist(imgList,isColor,empty,occupied,method):
 #for grayscale image classification
 def histClassify(image,empty,occupied,method = cv2.HISTCMP_CORREL,useColor = False,bins = 256):
     if(useColor):
-        emptyHist = cv2.calcHist([empty], [0,1,2], None, [bins,bins,bins], [0, bins,0,bins,0,bins])
-        occupiedHist = cv2.calcHist([occupied], [0,1,2], None, [bins,bins,bins], [0, bins,0,bins,0,bins])
-        imageHist = cv2.calcHist([image], [0,1,2], None, [bins,bins,bins], [0, bins,0,bins,0,bins])
+        emptyHist = cv2.calcHist([empty], [0,1,2], None, [bins,bins,bins], [0, 256,0,256,0,256])
+        occupiedHist = cv2.calcHist([occupied], [0,1,2], None, [bins,bins,bins], [0, 256,0,256,0,256])
+        imageHist = cv2.calcHist([image], [0,1,2], None, [bins,bins,bins], [0, 256,0,256,0,256])
     else:
         image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
         empty = cv2.cvtColor(empty, cv2.COLOR_BGR2GRAY)
         occupied = cv2.cvtColor(occupied, cv2.COLOR_BGR2GRAY)
-        emptyHist = cv2.calcHist([empty], [0], None, [bins], [0, bins])
-        occupiedHist = cv2.calcHist([occupied], [0], None, [bins], [0, bins])
-        imageHist = cv2.calcHist([image], [0], None, [bins], [0, bins])
+        emptyHist = cv2.calcHist([empty], [0], None, [bins], [0, 256])
+        occupiedHist = cv2.calcHist([occupied], [0], None, [bins], [0, 256])
+        imageHist = cv2.calcHist([image], [0], None, [bins], [0, 256])
     coeffEmpty = cv2.compareHist(imageHist,emptyHist,method)
     coeffOccupied = cv2.compareHist(imageHist, occupiedHist, method)
     coeffSelf = cv2.compareHist(imageHist, imageHist, method)
@@ -91,6 +93,43 @@ def histClassify(image,empty,occupied,method = cv2.HISTCMP_CORREL,useColor = Fal
         #print "occupied: "+str(coeffSelf)+", "+str(abs(coeffSelf-coeffEmpty))+", "+ str(abs(coeffSelf-coeffOccupied))
         return "occupied"
 
+def histClassify2(image, empty, occupied, method=cv2.HISTCMP_CORREL, useColor=False, bins=256):
+    emptyHist = []
+    occupiedHist = []
+    if (useColor):
+        for i in range(len(empty)):
+            emptyHist.append(cv2.calcHist([empty[i]], [0, 1, 2], None, [bins, bins, bins], [0, bins, 0, bins, 0, bins]))
+            occupiedHist.append(cv2.calcHist([occupied][i], [0, 1, 2], None, [bins, bins, bins], [0, bins, 0, bins, 0, bins]))
+            imageHist = cv2.calcHist([image], [0, 1, 2], None, [bins, bins, bins], [0, bins, 0, bins, 0, bins])
+
+    else:
+        for i in range(len(empty)):
+            # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            # empty[i] = cv2.cvtColor(empty[i], cv2.COLOR_BGR2GRAY)
+            # occupied[i] = cv2.cvtColor(occupied[i], cv2.COLOR_BGR2GRAY)
+            emptyHist.append(cv2.calcHist([empty[i]], [0], None, [bins], [0, bins]))
+            occupiedHist.append(cv2.calcHist([occupied[i]], [0], None, [bins], [0, bins]))
+            imageHist = cv2.calcHist([image], [0], None, [bins], [0, bins])
+        coeffSelf = cv2.compareHist(imageHist, imageHist, method)
+
+    coeffEmpty = []
+    coeffOccupied = []
+    voteEmpty = 0
+    voteOccupied = 0
+    for i in range(len(empty)):
+        coeffEmpty.append(cv2.compareHist(imageHist, emptyHist[i], method))
+        coeffOccupied.append(cv2.compareHist(imageHist, occupiedHist[i], method))
+        if (abs(coeffSelf - coeffEmpty[i]) < abs(coeffSelf - coeffOccupied[i])):
+            # print "empty: " +str(coeffSelf)+", " + str(abs(coeffSelf-coeffEmpty))+", "+ str(abs(coeffSelf-coeffOccupied))
+            voteEmpty+=1
+        else:
+            # print "occupied: "+str(coeffSelf)+", "+str(abs(coeffSelf-coeffEmpty))+", "+ str(abs(coeffSelf-coeffOccupied))
+            voteOccupied+=1
+
+    if(voteEmpty>voteOccupied):
+        return "empty"
+    else:
+        return "occupied"
 
 
 #Computes pixel averages either by channel or overall - use later for logistic regression (try grayscale,color,HSV)
@@ -102,69 +141,183 @@ def computePixels(imgList):
     print(pixels)
     return pixels
 
+#computes the cost and gradient given a theta and data - USE NUMPY ARRAYS, theta,y are columns
+def costfunction(X,y,theta):
+    n = len(X)
+    if(n != len(y)):
+        print "Size of X and y does not match"
+        return None
+    cost = (1.0/n)*np.sum(np.dot(-1.0*y.T,np.log10(sigmoid(np.dot(1.0*X,theta)))) - np.dot((1.0-y).T, np.log10(1.0-sigmoid(np.dot(1.0*X,theta))) ) ,axis=0)
+    gradient = np.dot((1.0/n)*(X.T),sigmoid(X.dot(theta))-y)
+    return [cost,gradient]
+
+def sigmoid(x):
+    return (1.0 / (1 + np.exp(-1.0 * x)))
+
+def logisticTrain(X,y,theta,alpha = 0.1,iter = 500):
+    for i in range(iter):
+        cost, gradient = costfunction(X, y, theta)
+        print cost
+        theta = theta - alpha*gradient
+
+    return theta
+
+#generate training data from image list of color images
+def createData(imgList,bins = 64,useColor = False,multiDim = False):
+    trainData = []
+    colors = ("b", "g", "r")
+
+    if(useColor==False and multiDim == True):
+        print("Can not use multidimensional histograms without color, using grayscale only instead")
+
+    for img in imgList:
+        if(useColor and multiDim ):
+            trainData.append(np.array(cv2.calcHist([img], [0, 1, 2], None, [bins, bins, bins], [0, 256, 0, 256, 0, 256])).flatten())
+
+        elif(useColor == True and multiDim == False):
+            temp = []
+            for i,color in enumerate(colors):
+                temp.append(np.array(cv2.calcHist([img],[i],None,[bins],[0,256])))
+            trainData.append(np.array(temp).flatten())
+
+        else:
+            if(len(img[0][0]) !=1):
+                img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            trainData.append(np.array(cv2.calcHist([img], [0], None, [bins], [0, 256])).flatten())
+
+    return trainData
+
 
 if __name__ == "__main__":
-    # images = loadFolder("dataset/occupied")
-    # computePixels(images)
-    # displayHist(images,True,None,None,None)
+    A = np.array([[1, 1, 1, 1], [1, 1, 1, 1], [9, 10, 11, 12]])
 
-    #analyze using histograms
-    emptyLot = cv2.imread("dataset/empty/26.jpg")
-    emptyLot = cv2.resize(emptyLot, (400,400), interpolation=cv2.INTER_AREA)
-    #emptyLot = cv2.cvtColor(emptyLot,cv2.COLOR_BGR2GRAY)
-    occupiedLot = cv2.imread("dataset/occupied/6.jpg")
-    occupiedLot = cv2.resize(occupiedLot, (400,400), interpolation=cv2.INTER_AREA)
-    #occupiedLot = cv2.cvtColor(occupiedLot,cv2.COLOR_BGR2GRAY)
-
-    #emptyLot = cv2.equalizeHist(emptyLot)
-    #emptyHist = cv2.calcHist([emptyLot], [0], None, [256], [0, 256])
-
-    OPENCV_METHODS = [
-        ("Correlation", cv2.HISTCMP_CORREL),
-        ("Chi-Squared", cv2.HISTCMP_CHISQR),
-        ("Intersection", cv2.HISTCMP_INTERSECT),
-        ("Hellinger", cv2.HISTCMP_HELLINGER),
-        ("Chi-Squared Alt",cv2.HISTCMP_CHISQR_ALT) ]
-
+    #regression
     emptySet = loadFolder("dataset/empty")
     occupiedSet = loadFolder("dataset/occupied")
-    emptySet = emptySet[0:150]
-    occupiedSet = occupiedSet[0:150]
-    #displayHist(emptySet,True,emptyLot,occupiedLot,cv2.HISTCMP_BHATTACHARYYA)
 
-    binVals = [16,32,64,128]
-    color = [False]
-    combs = list(itertools.product(OPENCV_METHODS,binVals,color))
+    #best 100,true,true,16
+    trainNum = 100
+    color = True
+    multi = True
+    bins = 16
 
-    methodAccuracies = []
-    for comb in combs:
-        name,method = comb[0]
-        binNum = comb[1]
-        color = comb[2]
-        numCorrectE =0
-        for image in emptySet:
-            if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="empty"):
-                numCorrectE = numCorrectE+1
-        print name + ": Empty Space Accuracy = "+ str(numCorrectE*1.0/len(emptySet))
+    trainX1 = createData(emptySet[0:trainNum],bins,color,multi)
+    trainX2 = createData(occupiedSet[0:trainNum],bins,color,multi)
+    trainX = trainX1+trainX2
+    print(np.shape(trainX))
 
-        numCorrectO = 0
-        for image in occupiedSet:
-            if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="occupied"):
-                numCorrectO = numCorrectO+1
-        print name + ": Occupied Space Accuracy = "+ str(numCorrectO*1.0/len(occupiedSet))
+    X = np.ones((np.shape(trainX)[0],np.shape(trainX)[1]+1))
+    X[:,1:X.shape[1]] = trainX
+    print(np.shape(X))
+    theta = np.zeros((X.shape[1],1))
+    print(np.shape(theta))
+    y1 = np.zeros((len(X)/2,1))
+    y2 = np.ones((len(X)/2,1))
+    y = np.concatenate((y1,y2),axis = 0)
+    print(np.shape(y))
 
-        print "Overall Accuracy: " + str((numCorrectE*1.0/len(emptySet)+numCorrectO*1.0/len(occupiedSet))/2.0)
-        methodAccuracies.append((comb,[numCorrectE*1.0/len(emptySet),numCorrectO*1.0/len(occupiedSet)]))
+    print("cost: ")
+    print(costfunction(X,y,theta)[0])
+    answer = logisticTrain(X,y,theta,0.1,10)
+    print("theta final: ")
+    print(answer)
 
-    bestAcc = 0
-    bestComb = None
-    for value in methodAccuracies:
-        accuracy = (value[1][0]+value[1][1])/2.0
-        if(accuracy>bestAcc):
-            bestAcc = accuracy
-            bestComb = value
+    testX1 = createData(emptySet[trainNum:150],bins,color,multi)
+    testX2 = createData(occupiedSet[trainNum:150],bins,color,multi)
+    testX = testX1+testX2
+    Xtest = np.ones((np.shape(testX)[0], np.shape(testX)[1] + 1))
+    Xtest[:, 1:X.shape[1]] = testX
+    print(np.shape(testX))
+    y1test = np.zeros((len(Xtest)/2,1))
+    y2test = np.ones((len(Xtest)/2,1))
+    ytest = np.concatenate((y1test,y2test),axis = 0)
+    print(np.shape(ytest))
 
-    print bestComb
+    correctEmpty = 0
+    for img in Xtest[0:(150-trainNum)]:
+        if(sigmoid(np.dot(img,answer))<0.5):
+            correctEmpty+=1
+    print 1.0*correctEmpty/(150-trainNum)
+    correctOcc = 0
+    for img in Xtest[(150-trainNum):150]:
+        if(sigmoid(np.dot(img,answer))>0.5):
+            correctOcc+=1
+    print 1.0*correctOcc/(150-trainNum)
+
+
+    # print(sigmoid(np.dot(Xtest[29],answer)))
+    # print(sigmoid(np.dot(Xtest[14], answer)))
+    # print(sigmoid(np.dot(Xtest[12],answer)))
+    # print(sigmoid(np.dot(Xtest[58], answer)))
+    # print(sigmoid(np.dot(Xtest[57],answer)))
+    # print(sigmoid(np.dot(Xtest[99], answer)))
+
+
+
+
+
+
+
+
+
+    # # images = loadFolder("dataset/occupied")
+    # # computePixels(images)
+    # # displayHist(images,True,None,None,None)
+    # emptySet = loadFolder("dataset/empty")
+    # occupiedSet = loadFolder("dataset/occupied")
+    #
+    # #analyze using histograms
+    # emptyLot = cv2.imread("dataset/empty/26.jpg")
+    # emptyLot = cv2.resize(emptyLot, (400,400), interpolation=cv2.INTER_AREA)
+    #
+    # occupiedLot = cv2.imread("dataset/occupied/6.jpg")
+    # occupiedLot = cv2.resize(occupiedLot, (400,400), interpolation=cv2.INTER_AREA)
+    #
+    # # emptyLot = emptySet[6:7]
+    # # occupiedLot = occupiedSet[6:7]
+    #
+    # OPENCV_METHODS = [
+    #     ("Correlation", cv2.HISTCMP_CORREL),
+    #     ("Chi-Squared", cv2.HISTCMP_CHISQR),
+    #     ("Intersection", cv2.HISTCMP_INTERSECT),
+    #     ("Hellinger", cv2.HISTCMP_HELLINGER),
+    #     ("Chi-Squared Alt",cv2.HISTCMP_CHISQR_ALT) ]
+    #
+    # #displayHist(emptySet,True,emptyLot,occupiedLot,cv2.HISTCMP_BHATTACHARYYA)
+    #
+    # binVals = [16,32,64,128]
+    # color = [False]
+    # combs = list(itertools.product(OPENCV_METHODS,binVals,color))
+    #
+    # methodAccuracies = []
+    # for comb in combs:
+    #     name,method = comb[0]
+    #     binNum = comb[1]
+    #     color = comb[2]
+    #     numCorrectE =0
+    #     for image in emptySet:
+    #         if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="empty"):
+    #             numCorrectE = numCorrectE+1
+    #     print name + ": Empty Space Accuracy = "+ str(numCorrectE*1.0/len(emptySet))
+    #
+    #     numCorrectO = 0
+    #     for image in occupiedSet:
+    #         if(histClassify(image,emptyLot,occupiedLot,method,color,binNum)=="occupied"):
+    #             numCorrectO = numCorrectO+1
+    #     print name + ": Occupied Space Accuracy = "+ str(numCorrectO*1.0/len(occupiedSet))
+    #
+    #     print "Overall Accuracy: " + str((numCorrectE*1.0/len(emptySet)+numCorrectO*1.0/len(occupiedSet))/2.0)
+    #     methodAccuracies.append((comb,[numCorrectE*1.0/len(emptySet),numCorrectO*1.0/len(occupiedSet)]))
+    #
+    # bestAcc = 0
+    # bestComb = None
+    # for value in methodAccuracies:
+    #     accuracy = (value[1][0]+value[1][1])/2.0
+    #     if(accuracy>bestAcc):
+    #         bestAcc = accuracy
+    #         bestComb = value
+    #
+    # print bestComb
 
 
 
