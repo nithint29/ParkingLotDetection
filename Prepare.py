@@ -31,13 +31,19 @@ def loadFolder(folderPath):
         img = cv2.imread(files)
         img = cv2.GaussianBlur(img, (15, 15), 0)
         img = cv2.resize(img, (400, 400), interpolation=cv2.INTER_AREA)
-        #img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+        img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
         img_list.append(img)
 
     return img_list
 
+''' read images from a directory, resize images and save '''
+def loadResizeSave(srcPath, savePath):
+    for i, imgs in enumerate(glob.glob(srcPath + "/*.jpg")):
+        img = cv2.imread(imgs)
+        img_resize = cv2.resize(img, (400, 400), interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(savePath + "/" + str(i + 1) + ".jpg", img_resize)
 
-
+    return
 
 #run through image color or grayscale histograms
 def displayHist(imgList,isColor,empty,occupied,method):
@@ -154,10 +160,11 @@ def costfunction(X,y,theta):
 def sigmoid(x):
     return (1.0 / (1 + np.exp(-1.0 * x)))
 
+#trains on input array data and returns a column of final theta values
 def logisticTrain(X,y,theta,alpha = 0.1,iter = 500):
     for i in range(iter):
         cost, gradient = costfunction(X, y, theta)
-        print cost
+        #print cost
         theta = theta - alpha*gradient
 
     return theta
@@ -187,19 +194,84 @@ def createData(imgList,bins = 64,useColor = False,multiDim = False):
 
     return trainData
 
+#takes training data from input folder and outputs the resulting theta (with one extra dimension)
+def trainOnFoloder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 10):
+    # best 100,true,true,16
+    emptySet = loadFolder(emptyFolder)
+    occupiedSet = loadFolder(occupiedFolder)
+
+    trainX1 = createData(emptySet[0:trainNum], bins, color, multi)
+    trainX2 = createData(occupiedSet[0:trainNum], bins, color, multi)
+    trainX = trainX1 + trainX2
+    print(np.shape(trainX))
+
+    X = np.ones((np.shape(trainX)[0], np.shape(trainX)[1] + 1))
+    X[:, 1:X.shape[1]] = trainX
+    print(np.shape(X))
+    theta = np.zeros((X.shape[1], 1))
+    print(np.shape(theta))
+    y1 = np.zeros((len(X) / 2, 1))
+    y2 = np.ones((len(X) / 2, 1))
+    y = np.concatenate((y1, y2), axis=0)
+    print(np.shape(y))
+
+    answer = logisticTrain(X, y, theta, alpha, iters)
+
+    return answer
+
+#classifys input image given a trained theta
+def predict(img,theta,bins,useColor,multiDim):
+    colors = ("b", "g", "r")
+    img = cv2.resize(img, (400,400), interpolation=cv2.INTER_AREA)
+
+    if (useColor == False and multiDim == True):
+        print("Can not use multidimensional histograms without color, using grayscale only instead")
+
+    if (useColor and multiDim):
+        X = (np.array(cv2.calcHist([img], [0, 1, 2], None, [bins, bins, bins], [0, 256, 0, 256, 0, 256])).flatten())
+
+    elif (useColor == True and multiDim == False):
+        temp = []
+        for i, color in enumerate(colors):
+            temp.append(np.array(cv2.calcHist([img], [i], None, [bins], [0, 256])))
+        X = (np.array(temp).flatten())
+
+    else:
+        if (len(img[0][0]) != 1):
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        X = (np.array(cv2.calcHist([img], [0], None, [bins], [0, 256])).flatten())
+
+
+    Xbias = np.ones(np.shape(X)[0]+1)
+    Xbias[1:(np.shape(Xbias)[0])] = X
+    return (1 if (sigmoid(np.dot(Xbias,theta))>0.5) else 0)
+
 
 if __name__ == "__main__":
-    A = np.array([[1, 1, 1, 1], [1, 1, 1, 1], [9, 10, 11, 12]])
 
-    #regression
+    # thetaFinal = trainOnFoloder("dataset/empty","dataset/occupied",100,16,True,True)
+    # # img = cv2.imread("mydata/occupied/spot_2.jpg")
+    # # img2 = cv2.imread("mydata/empty/137.jpg")
+    # #print(predict(img,thetaFinal,16,True,True))
+    # # print(predict(img2, thetaFinal, 16, True, True))
+    #
+    # testFolder = loadFolder("mydata/empty")
+    #
+    # for img in testFolder:
+    #     print predict(img,thetaFinal,16,True,True)
+
+
+
+
+    # regression
     emptySet = loadFolder("dataset/empty")
     occupiedSet = loadFolder("dataset/occupied")
 
     #best 100,true,true,16
-    trainNum = 100
+    trainNum = 80
     color = True
     multi = True
-    bins = 16
+    bins = 8
 
     trainX1 = createData(emptySet[0:trainNum],bins,color,multi)
     trainX2 = createData(occupiedSet[0:trainNum],bins,color,multi)
