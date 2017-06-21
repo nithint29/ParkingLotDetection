@@ -1,27 +1,19 @@
 import numpy as np
 import cv2
-import os
-import errno
-import Prepare
+
 
 class PolygonDrawer(object):
     polyPoints = [None]*4
     i = 0
-    FILE_NAME = "coordinates.txt"
-    PICTURE_FOLDER = "spots_folder"
     
-    def __init__(self,windowName,image,fileName = FILE_NAME,folderName = PICTURE_FOLDER):
+    def __init__(self,windowName,image):
         self.originalImage = image
         self.image = np.copy(self.originalImage)
         #self.image = image
         self.windowName = windowName
         self.POINTS = []
         self.i = 0
-        self.pictureMap = {}
-        self.FILE_NAME = fileName
-        self.PICTURE_FOLDER = folderName
-        #self.ensure_dir(self.PICTURE_FOLDER)
-        #self.ensure_dir(self.FILE_NAME)
+        self.spaceMap = {}
 
 
 
@@ -55,12 +47,12 @@ class PolygonDrawer(object):
             self.i = 0;
 
 
-    def run(self):
+    def run(self, file_path):
         cv2.namedWindow(self.windowName)
         cv2.setMouseCallback(self.windowName,self.place_poly)
 
         while(1):
-            #to draw polygon in progress
+
             if(self.i>=1):
                 pts = np.array(self.polyPoints[0:self.i],np.int32)#.reshape((-1,1,2))
                 cv2.polylines(self.image,[pts],False,(255,255,255))
@@ -70,13 +62,10 @@ class PolygonDrawer(object):
 
             key = cv2.waitKey(20)
             if key & 0xFF == 27:
-                self.saveSpotsCoordinates()
-                self.saveImageList(self.getRotateRect())
+                self.saveSpotsCoordinates(file_path)
                 break
-
-            #place points from text file onto image
             elif key & 0xFF == 32:
-                self.readSpotsCoordinates(self.FILE_NAME)
+                self.readSpotsCoordinates(file_path)
                 self.loadPointsOntoImage()
 
         cv2.destroyAllWindows()
@@ -89,7 +78,6 @@ class PolygonDrawer(object):
         for polygon in self.POINTS:
             if(polygon !=None):
                 for point in polygon:
-
                     cv2.circle(self.image, (int(point[0]),int(point[1])), 5, (255, 0, 0), -1)
 
     def four_point_transform(self, coordinate):
@@ -128,8 +116,8 @@ class PolygonDrawer(object):
     #creates list of warped images from POINTS
     def getRotateRect(self):
         warped_img_lists = []
-        for polygon in self.POINTS:
-            warped = self.four_point_transform(polygon)
+        for coordinate in self.POINTS:
+            warped = self.four_point_transform(coordinate)
             # plt.imshow(warped, cmap='gray', interpolation='bicubic')
             # plt.xticks([]), plt.yticks([])
             # plt.show()
@@ -137,21 +125,19 @@ class PolygonDrawer(object):
         return warped_img_lists
 
 
-
-
     def loadFromDict(self):
         print "hi"
 
     #save polygon data to text file
-    def saveSpotsCoordinates(self):
-        file = open(self.FILE_NAME, "w")
+    def saveSpotsCoordinates(self, file_path):
+        file = open(file_path, "w")
         for polygon in self.POINTS:
             for t in polygon:
                 file.write(' '.join(str(s) for s in t) + '\n')
         file.close()
         print("Coordinates saved successfully")
 
-    #load polygon data points from text file into POINTS
+    #load polygon data points from text file
     def readSpotsCoordinates(self,filename):
         self.POINTS = []
         with open(filename) as file:
@@ -167,56 +153,23 @@ class PolygonDrawer(object):
                     count = 0
                     self.POINTS.append(temp_list)
                     temp_list = []
-        print("read coordinates lists successfully:")
+        print("read coordinates lists successfully")
         print(self.POINTS)
         return self.POINTS
 
-    def saveImageList(self,img_list):
+    def saveImageList(self,img_list, save_path):
         for i, img in enumerate(img_list):
-            cv2.imwrite(self.PICTURE_FOLDER + "/spot_" + str(i) + ".jpg", img)
-        print("saved N = " + str(len(img_list)) + " images in path " + self.PICTURE_FOLDER)
-
-    def ensure_dir(self,filename):
-        if not os.path.exists(os.path.dirname(filename)):
-            try:
-                os.makedirs(os.path.dirname(filename))
-            except OSError as exc:  # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-    def setCoordinatesFile(self,fileName = None,folderName = None):
-        #self.ensure_dir(fileName)
-        #self.ensure_dir(folderName)
-        if(fileName != None):
-            self.FILE_NAME = fileName
-        if(folderName != None):
-            self.PICTURE_FOLDER = folderName
-
-
-    #creates a dictionary of images using coordinates text
-    def createPictureLibrary(self):
-        index = 0
-        for polygon in self.POINTS:
-            warped = self.four_point_transform(polygon)
-            # plt.imshow(warped, cmap='gray', interpolation='bicubic')
-            # plt.xticks([]), plt.yticks([])
-            # plt.show()
-            self.pictureMap[index] = [polygon,warped]
-            index+=1
-        return self.pictureMap
+            cv2.imwrite(save_path + "/spot_" + str(i) + ".jpg", img)
+        print("save N = " + str(len(img_list)) + " in path " + save_path)
 
 
 
-
-if __name__ == "__main__":
-    #print("hello world")
-    img = cv2.imread("CARS.jpg")
-    p = PolygonDrawer("poly",img,"coordinates.txt","spots_folder")
-    p.run()
-    dict = p.createPictureLibrary()
-    print "Dictionary[0]: ",dict[1][0]
-    cv2.imshow("lot",dict[2][1])
-    cv2.waitKey(0)
-    Prepare.readFromDict(dict)
+# if __name__ == "__main__":
+#     print("hello world")
+#     file_path = "coordinates.txt"
+#     img = cv2.imread("l2.jpg")
+#     p = PolygonDrawer("poly",img)
+#     p.run(file_path)
+#     p.saveImageList(p.getRotateRect(), "spots_folder")
 
 

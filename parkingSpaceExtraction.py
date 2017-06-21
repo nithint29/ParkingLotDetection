@@ -2,6 +2,9 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
+HEIGHT = 400
+WIDTH = 400
+
 ''' extract spot mannuly'''
 def getSpotsCoordiantesFromImage(img, num_space) :
     #coordinate_lists has this format[ [(x1,y1), (x2,y2), (x3,y3), (x4,y4)], [], [] ]
@@ -28,10 +31,11 @@ def getRotateRect(img, cooridnate_lists):
     #every time we process one coordinates
     for coordinate in cooridnate_lists :
         warped = four_point_transform(img, coordinate)
-        plt.imshow(warped, cmap = 'gray', interpolation = 'bicubic')
-        plt.xticks([]), plt.yticks([])
-        plt.show()
-        warped_img_lists.append(warped)
+        warped_resize = cv2.resize(warped, (WIDTH, HEIGHT), interpolation=cv2.INTER_CUBIC)
+        # plt.imshow(warped, cmap = 'gray', interpolation = 'bicubic')
+        # plt.xticks([]), plt.yticks([])
+        # plt.show()
+        warped_img_lists.append(warped_resize)
     return warped_img_lists
 
 ''' return warped image by 4 points'''
@@ -121,9 +125,9 @@ def saveImageList(img_list, save_path):
     print("save N = " + str(len(img_list)) + " in path " + save_path)
 
 def main():
-    img1 = cv2.imread('parking_example.png', cv2.IMREAD_COLOR)
+    img1 = cv2.imread('view5.png', cv2.IMREAD_COLOR)
     #edit num_of_lots to determine how many
-    num_of_lots = 2
+    num_of_lots = 3
     getSpotsCoordiantesFromImage(img1,num_of_lots)
     #the ith coordinate list correspond to ith spots index list
     coordinate_lists = readSpotsCoordinates("coordinates.txt")
