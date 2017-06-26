@@ -4,12 +4,13 @@ import cv2
 from PolygonDrawer import *
 from parkingSpaceExtraction import *
 from detection import *
+from Prepare import *
 
 class SmartParking:
     '''
     create smart parking class
-    it can be initalize from image list with file folder
-    or it can be initialze from file folder
+    it can be initalized from image list with file folder
+    or it can be initialzed from file folder
     '''
     def __init__(self):
         self.current_image = None
@@ -23,7 +24,7 @@ class SmartParking:
         self.__usesvm = True
         self.__uselr = False
 
-    #initialize form image list and file folder
+    #initialize from image list and file folder
     def initial(self, img_list, file_folder):
         #assign the svm model classifier
         self.__svm_model = SVM(file_path="svm_model1.xml")
@@ -78,11 +79,11 @@ class SmartParking:
 
 
 
-
-s = SmartParking()
-img_list = []
-img0 = cv2.imread("parkingImage/view7.png", cv2.IMREAD_COLOR)
-img_list.append(img0)
-s.initial(img_list, "test")
-# s.initialFromFolder("test")
-s.process(img0,0)
+if __name__ == "__main__":
+    s = SmartParking()
+    img_list = []
+    img0 = cv2.imread("parkingImage/view7.png", cv2.IMREAD_COLOR)
+    img_list.append(img0)
+    s.initial(img_list, "test")
+    # s.initialFromFolder("test")
+    s.process(img0,0)
