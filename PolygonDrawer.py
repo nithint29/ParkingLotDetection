@@ -74,7 +74,7 @@ class PolygonDrawer(object):
                 self.saveImageList(self.getRotateRect())
                 break
 
-            #place points from text file onto image
+            #place points from text file onto image (space bar)
             elif key & 0xFF == 32:
                 self.readSpotsCoordinates(self.FILE_NAME)
                 self.loadPointsOntoImage()
@@ -87,6 +87,8 @@ class PolygonDrawer(object):
     def loadPointsOntoImage(self):
         self.image = np.copy(self.originalImage)
         for polygon in self.POINTS:
+            pts = np.array(polygon, np.int32)  # .reshape((-1,1,2))
+            cv2.fillPoly(self.image, [pts], (255, 255, 255))
             if(polygon !=None):
                 for point in polygon:
 
@@ -213,10 +215,10 @@ if __name__ == "__main__":
     img = cv2.imread("CARS.jpg")
     p = PolygonDrawer("poly",img,"coordinates.txt","spots_folder")
     p.run()
-    dict = p.createPictureLibrary()
-    print "Dictionary[0]: ",dict[1][0]
-    cv2.imshow("lot",dict[2][1])
-    cv2.waitKey(0)
-    Prepare.readFromDict(dict)
+    # dict = p.createPictureLibrary()
+    # print "Dictionary[0]: ",dict[1][0]
+    # cv2.imshow("lot",dict[2][1])
+    # cv2.waitKey(0)
+    # Prepare.readFromDict(dict)
 
 
