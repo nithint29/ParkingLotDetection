@@ -25,8 +25,6 @@ class SmartParking:
 
     #initialize form image list and file folder
     def initial(self, img_list, file_folder):
-        #assign the svm model classifier
-        self.__svm_model = SVM(file_path="svm_model1.xml")
         #initialize from image list
         self.__file_folder = file_folder
         for i, img in enumerate(img_list):
@@ -35,11 +33,20 @@ class SmartParking:
             p.run(coordinate_path)
             p.saveImageList(p.getRotateRect(), "test/spots_folder")
             self.__camera_position.append(i)
+        #assign the svm model classifier
+        if(self.__usesvm):
+            self.__svm_model = SVM(file_path="svm_model1.xml")
+        elif(self.__uselr):
+            self.__lr_model = SVM(file_path="svm_model1.xml")
 
     #initialize from the current file folder data
     def initialFromFolder(self, file_folder):
-        self.__svm_model = SVM(file_path="svm_model1.xml")
         self.__file_folder = file_folder
+        if(self.__usesvm):
+            self.__svm_model = SVM(file_path="svm_model1.xml")
+        elif(self.__uselr):
+            self.__lr_model = SVM(file_path="svm_model1.xml")
+
 
     #process with the input image and positions
     def process(self, img, pos):
@@ -81,8 +88,11 @@ class SmartParking:
 
 s = SmartParking()
 img_list = []
-img0 = cv2.imread("parkingImage/view7.png", cv2.IMREAD_COLOR)
+img0 = cv2.imread("parkingImage/view1.png", cv2.IMREAD_COLOR)
+img1 = cv2.imread("parkingImage/view2.png", cv2.IMREAD_COLOR)
 img_list.append(img0)
-s.initial(img_list, "test")
-# s.initialFromFolder("test")
+img_list.append(img1)
+
+# s.initial(img_list, "test")
+s.initialFromFolder("test")
 s.process(img0,0)
