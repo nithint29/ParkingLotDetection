@@ -24,6 +24,6 @@ def loadResizeSave(srcPath, savePath):
         cv2.imwrite(savePath + "/" + "{:03d}".format(i) + ".jpg", img_resize)
     return
 
-resize_empty_list = loadResizeSave("dataset/empty","dataset_resize/empty")
-resize_occupied_list = loadResizeSave("dataset/occupied","dataset_resize/occupied")
+# resize_empty_list = loadResizeSave("dataset/empty","dataset_resize/empty")
+# resize_occupied_list = loadResizeSave("dataset/occupied","dataset_resize/occupied")
 
