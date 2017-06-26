@@ -10,6 +10,7 @@ class PolygonDrawer(object):
     PICTURE_FOLDER = "spots_folder"
     
     def __init__(self,windowName,image,fileName = FILE_NAME,folderName = PICTURE_FOLDER):
+        """Initialize object on a given image with filName to store coordinates and folderName to store each space image"""
         self.originalImage = image
         self.image = np.copy(self.originalImage)
         #self.image = image
@@ -22,6 +23,14 @@ class PolygonDrawer(object):
         #self.ensure_dir(self.PICTURE_FOLDER)
         #self.ensure_dir(self.FILE_NAME)
 
+    def reInit(self,image,fileName = FILE_NAME,folderName = PICTURE_FOLDER):
+        """Use to reselect the image to process, with new output coordinate file and picture folder"""
+        self.originalImage = image
+        self.image = np.copy(self.originalImage)
+        self.FILE_NAME = fileName
+        self.PICTURE_FOLDER = folderName
+        self.POINTS = []
+        self.i = 0
 
 
     #Called on mouse click
@@ -45,7 +54,7 @@ class PolygonDrawer(object):
             self.POINTS.append(self.polyPoints)
             self.polyPoints = [None]*4
             self.i = 0
-            print(self.POINTS)
+            #print(self.POINTS)
 
         #delete current points
         elif event == cv2.EVENT_RBUTTONDBLCLK:
@@ -72,6 +81,8 @@ class PolygonDrawer(object):
                 self.saveSpotsCoordinates()
                 self.saveImageList(self.getRotateRect())
                 break
+
+            #press spacebar to read spot info from file onto image
             elif key & 0xFF == 32:
                 self.readSpotsCoordinates(self.FILE_NAME)
                 self.loadPointsOntoImage()
@@ -168,7 +179,9 @@ class PolygonDrawer(object):
         print(self.POINTS)
         return self.POINTS
 
+
     def saveImageList(self,img_list):
+        """Saves images in list to the PICTURE_FOLDER"""
         for i, img in enumerate(img_list):
             cv2.imwrite(self.PICTURE_FOLDER + "/spot_" + str(i) + ".jpg", img)
         print("saved N = " + str(len(img_list)) + " images in path " + self.PICTURE_FOLDER)

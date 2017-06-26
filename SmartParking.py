@@ -31,23 +31,19 @@ class SmartParking:
         #initialize from image list
         self.__file_folder = file_folder
         for i, img in enumerate(img_list):
-            p = PolygonDrawer("poly", img)
-            coordinate_path = file_folder + "/coordinate/coordinate_" + "{:03d}".format(i) + ".txt"
-            p.run(coordinate_path)
-            p.saveImageList(p.getRotateRect(), "test/spots_folder")
+            coordinate_path = file_folder + "/coordinates/coordinate_" + "{:03d}".format(i) + ".txt"
+            p = PolygonDrawer("poly", img,coordinate_path,file_folder+"/spots_folder")
+            p.run()
             self.__camera_position.append(i)
 
-    #initialize from the current file folder data
-    def initialFromFolder(self, file_folder):
-        self.__svm_model = SVM(file_path="svm_model1.xml")
-        self.__file_folder = file_folder
+
 
     #process with the input image and positions
     def process(self, img, pos):
         self.current_image = img
         self.current_pos = pos
         # find the correspond camera position's ROI coordinates
-        file_name = self.__file_folder + "/coordinate/coordinate_" + "{:03d}".format(pos) + ".txt"
+        file_name = self.__file_folder + "/coordinates/coordinate_" + "{:03d}".format(pos) + ".txt"
         self.__current_coordinate_list = readSpotsCoordinates(file_name)
         print self.__current_coordinate_list
         self.__spots_list = getRotateRect(self.current_image, self.__current_coordinate_list)
@@ -84,6 +80,7 @@ if __name__ == "__main__":
     img_list = []
     img0 = cv2.imread("parkingImage/view7.png", cv2.IMREAD_COLOR)
     img_list.append(img0)
+    img_list.append(cv2.imread("parking_example.png",cv2.IMREAD_COLOR))
     s.initial(img_list, "test")
     # s.initialFromFolder("test")
     s.process(img0,0)
