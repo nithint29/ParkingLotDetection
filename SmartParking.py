@@ -26,8 +26,6 @@ class SmartParking:
 
     #initialize from image list and file folder
     def initial(self, img_list, file_folder):
-        #assign the svm model classifier
-        self.__svm_model = SVM(file_path="svm_model1.xml")
         #initialize from image list
         self.__file_folder = file_folder
         for i, img in enumerate(img_list):
@@ -35,7 +33,11 @@ class SmartParking:
             p = PolygonDrawer("poly", img,coordinate_path,file_folder+"/spots_folder")
             p.run()
             self.__camera_position.append(i)
-
+        #assign the svm model classifier
+        if(self.__usesvm):
+            self.__svm_model = SVM(file_path="svm_model1.xml")
+        elif(self.__uselr):
+            self.__lr_model = SVM(file_path="svm_model1.xml")
 
 
     #process with the input image and positions
@@ -71,7 +73,6 @@ class SmartParking:
                     emptySpots.append(i)
                     print ("Spot " + str(self.current_pos) + "-" + str(i) + " is empty")
         return emptySpots
-
 
 
 
