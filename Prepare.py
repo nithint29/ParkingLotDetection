@@ -31,7 +31,7 @@ def loadFolder(folderPath):
         img = cv2.imread(files)
         img = cv2.GaussianBlur(img, (15, 15), 0)
         img = cv2.resize(img, (400, 400), interpolation=cv2.INTER_AREA)
-        img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+        #img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
         img_list.append(img)
 
     return img_list
@@ -249,13 +249,13 @@ def predict(img,theta,bins,useColor,multiDim):
 
 if __name__ == "__main__":
 
-    # thetaFinal = trainOnFoloder("dataset/empty","dataset/occupied",100,16,True,True)
+    # thetaFinal = trainOnFoloder("rawdataset/empty","dataset/occupied",150,16,True,True)
     # # img = cv2.imread("mydata/occupied/spot_2.jpg")
     # # img2 = cv2.imread("mydata/empty/137.jpg")
     # #print(predict(img,thetaFinal,16,True,True))
     # # print(predict(img2, thetaFinal, 16, True, True))
     #
-    # testFolder = loadFolder("mydata/empty")
+    # testFolder = loadFolder("spots_folder")
     #
     # for img in testFolder:
     #     print predict(img,thetaFinal,16,True,True)
@@ -268,10 +268,10 @@ if __name__ == "__main__":
     occupiedSet = loadFolder("dataset/occupied")
 
     #best 100,true,true,16
-    trainNum = 80
+    trainNum = 40
     color = True
     multi = True
-    bins = 8
+    bins = 32
 
     trainX1 = createData(emptySet[0:trainNum],bins,color,multi)
     trainX2 = createData(occupiedSet[0:trainNum],bins,color,multi)
