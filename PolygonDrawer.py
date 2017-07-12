@@ -4,6 +4,8 @@ import os
 import errno
 
 class PolygonDrawer(object):
+    """Takes an image and allows user to draw and extract polygons from it. Polygon data is stored in input text fileName.
+        Images extracted are saved in input folderName."""
     polyPoints = [None]*4
     i = 0
     FILE_NAME = "coordinates.txt"
@@ -63,7 +65,7 @@ class PolygonDrawer(object):
             self.i = 0;
 
 
-    def run(self):
+    def run(self,saveImages=True):
         cv2.namedWindow(self.windowName)
         cv2.setMouseCallback(self.windowName,self.place_poly)
 
@@ -79,11 +81,13 @@ class PolygonDrawer(object):
             key = cv2.waitKey(20)
             if key & 0xFF == 27:
                 self.saveSpotsCoordinates()
-                self.saveImageList(self.getRotateRect())
+                if(saveImages==True):
+                    self.saveImageList(self.getRotateRect(self.POINTS))
                 break
 
             #press spacebar to read spot info from file onto image
             elif key & 0xFF == 32:
+                self.POINTS=[]
                 self.readSpotsCoordinates(self.FILE_NAME)
                 self.loadPointsOntoImage()
 
@@ -134,9 +138,9 @@ class PolygonDrawer(object):
         return warped
 
     #creates list of warped images from POINTS
-    def getRotateRect(self):
+    def getRotateRect(self,pointList):
         warped_img_lists = []
-        for coordinate in self.POINTS:
+        for coordinate in pointList:
             warped = self.four_point_transform(coordinate)
             # plt.imshow(warped, cmap='gray', interpolation='bicubic')
             # plt.xticks([]), plt.yticks([])
@@ -175,8 +179,8 @@ class PolygonDrawer(object):
                     count = 0
                     self.POINTS.append(temp_list)
                     temp_list = []
-        print("read coordinates lists successfully:")
-        print(self.POINTS)
+        #print("read coordinates lists successfully:")
+        #print(self.POINTS)
         return self.POINTS
 
 

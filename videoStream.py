@@ -1,23 +1,48 @@
-import cv2
-import numpy
-import matplotlib as plt
 from Prepare import *
-from PolygonDrawer import PolygonDrawer
+from PolygonDrawer import *
+from time import  time
 
-thetaFinal = trainOnFoloder("rawdataset/empty","dataset/occupied",150,16,True,True)
+#numSamples = 150
+frameNum=0
+timeInterval = 60 #number of minutes between each capture
+auto =True
+startTime = time()
+
+#train on rawdata
+thetaFinal = trainOnFoloder("rawdataset/empty","rawdataset/occupied",-1,32,True,True,lam=100)
 testFolder = loadFolder("spots_folder")
 
+#start stream
 cap = cv2.VideoCapture("rtsp://bigbrother.winlab.rutgers.edu/stream1")
 initial = True
+initState = []
+ret, prevFrame = cap.read()
+
 while(True):
     # Capture frame-by-frame
     ret, frame = cap.read()
+    p = PolygonDrawer("frame", frame, "coordinates.txt", "spots_folder")
+    coordList = p.readSpotsCoordinates("coordinates.txt")
 
     if(initial):
         cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
         # cv2.resizeWindow('frame', 600, 600)
-        p = PolygonDrawer("frame", frame, "coordinates.txt", "spots_folder")
-        p.run()
+        if(auto==False):
+            p.run(saveImages=False)
+
+        if(auto == True):
+            cv2.imwrite("spots_folder/frame{}.jpg".format(frameNum), frame)
+            frameNum += 1
+            testImages = p.getRotateRect(coordList)
+
+            for i, img in enumerate(testImages):
+                isOcc = predict(img, thetaFinal, 32, True, True)
+                initState.append(isOcc)
+                if (isOcc == 1):
+                    cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+                elif (isOcc == 0):
+                    cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+
     initial = False
 
     # Our operations on the frame come here
@@ -47,17 +72,54 @@ while(True):
     # # cv2.drawContours(frame, validCont, -1, (0, 255, 0), 3)
 
     # Display the resulting frame
-    cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
-    cv2.imshow('frame',frame)
-    key = cv2.waitKey(0)
-    if key & 0xFF == ord('q'):
-        break
-    elif key & 0xFF == ord('w'):
-        continue
+    if(auto==False):
+        cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+        cv2.imshow('frame',frame)
+        key = cv2.waitKey(0)
+        if key & 0xFF == ord('q'):
+            break
+        if key & 0xFF == ord('w'):
+            diff = np.sum(np.sum(np.sum(frame-prevFrame,0),0))
+            baseline = np.sum(np.sum(np.sum(frame,0),0))
+            print(diff)
+            print(baseline)
+            print(1.0*diff/baseline)
+            prevFrame=frame
+            continue
 
-    elif key & 0xFF == ord('p'):
-        for img in testFolder:
-            print predict(img, thetaFinal, 16, True, True)
+        if (key & 0xFF == ord('p')):
+            t = time()
+            cv2.imwrite("spots_folder/frame{}.jpg".format(frameNum),frame)
+            frameNum +=1
+            testImages = p.getRotateRect(coordList)
+            for i,img in enumerate(testImages):
+                isOcc = predict(img, thetaFinal, 32, True, True)
+                if(isOcc==1):
+                    cv2.imwrite("spots_folder/generatedOccupied/"+"genImg{},{},{}".format(i,frameNum,int(t))+".jpg",img)
+                elif(isOcc==0):
+                    cv2.imwrite("spots_folder/generatedEmpty/"+"genImg{},{},{}".format(i,frameNum,int(t))+".jpg",img)
+
+
+    if(auto == True):
+        cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+        cv2.imshow('frame', frame)
+        key = cv2.waitKey(10)
+        if key & 0xFF == ord('q'):
+            break
+
+        currTime = time()
+        if (key & 0xFF == ord('p')) or (currTime - startTime >= timeInterval*60):
+            startTime = currTime
+            cv2.imwrite("spots_folder/frame{}.jpg".format(frameNum), frame)
+            frameNum += 1
+            testImages = p.getRotateRect(coordList)
+            for i, img in enumerate(testImages):
+
+                isOcc = predict(img, thetaFinal, 32, True, True)
+                if (isOcc == 1):
+                    cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i,frameNum,int(currTime))+".jpg",img)
+                elif (isOcc == 0):
+                    cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i,frameNum,int(currTime))+".jpg",img)
 
 # When everything done, release the capture
 cap.release()

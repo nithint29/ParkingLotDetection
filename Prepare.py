@@ -24,13 +24,14 @@ def readFromFolder(folder):
             # print( np.sum([img[:,:,0],img[:,:,1],img[:,:,2]])/(3*400*400) )
     return img_list
 
-def loadFolder(folderPath):
+def loadFolder(folderPath,resizeBlur=True):
     img_list = []
 
     for files in glob.glob(folderPath + "/*.jpg"):
         img = cv2.imread(files)
-        img = cv2.GaussianBlur(img, (15, 15), 0)
-        img = cv2.resize(img, (400, 400), interpolation=cv2.INTER_AREA)
+        if(resizeBlur==True):
+            img = cv2.GaussianBlur(img, (15, 15), 0)
+            img = cv2.resize(img, (400, 400), interpolation=cv2.INTER_AREA)
         #img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
         img_list.append(img)
 
@@ -148,22 +149,23 @@ def computePixels(imgList):
     return pixels
 
 #computes the cost and gradient given a theta and data - USE NUMPY ARRAYS, theta,y are columns
-def costfunction(X,y,theta):
+def costfunction(X,y,theta,lam = 0):
     n = len(X)
     if(n != len(y)):
         print "Size of X and y does not match"
         return None
-    cost = (1.0/n)*np.sum(np.dot(-1.0*y.T,np.log10(sigmoid(np.dot(1.0*X,theta)))) - np.dot((1.0-y).T, np.log10(1.0-sigmoid(np.dot(1.0*X,theta))) ) ,axis=0)
+    cost = (1.0/n)*np.sum(np.dot(-1.0*y.T,np.log10(sigmoid( (np.dot(1.0*X,theta))/(400.0*400) ))) - np.dot((1.0-y).T, np.log10(1.0-sigmoid( np.dot(1.0*X,theta)/(400.0*400) )) ) ,axis=0)
     gradient = np.dot((1.0/n)*(X.T),sigmoid(X.dot(theta))-y)
+    gradient[1:] += (lam/X.shape[0])*theta[1:]
     return [cost,gradient]
 
 def sigmoid(x):
     return (1.0 / (1 + np.exp(-1.0 * x)))
 
 #trains on input array data and returns a column of final theta values
-def logisticTrain(X,y,theta,alpha = 0.1,iter = 500):
+def logisticTrain(X,y,theta,alpha = 0.1,iter = 500,lam=0):
     for i in range(iter):
-        cost, gradient = costfunction(X, y, theta)
+        cost, gradient = costfunction(X, y, theta,lam)
         #print cost
         theta = theta - alpha*gradient
 
@@ -195,13 +197,21 @@ def createData(imgList,bins = 64,useColor = False,multiDim = False):
     return trainData
 
 #takes training data from input folder and outputs the resulting theta (with one extra dimension)
-def trainOnFoloder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 10):
+#set trainNum = -1 to use whole folder
+def trainOnFoloder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 20,hists = True,lam=0):
     # best 100,true,true,16
     emptySet = loadFolder(emptyFolder)
     occupiedSet = loadFolder(occupiedFolder)
 
-    trainX1 = createData(emptySet[0:trainNum], bins, color, multi)
-    trainX2 = createData(occupiedSet[0:trainNum], bins, color, multi)
+    trainNumE = trainNum
+    trainNumO = trainNum
+
+    if(trainNum ==-1):
+        trainNumE = len(emptySet)
+        trainNumO = len(occupiedSet)
+
+    trainX1 = createData(emptySet[0:trainNumE], bins, color, multi)
+    trainX2 = createData(occupiedSet[0:trainNumO], bins, color, multi)
     trainX = trainX1 + trainX2
     print(np.shape(trainX))
 
@@ -210,18 +220,21 @@ def trainOnFoloder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 
     print(np.shape(X))
     theta = np.zeros((X.shape[1], 1))
     print(np.shape(theta))
-    y1 = np.zeros((len(X) / 2, 1))
-    y2 = np.ones((len(X) / 2, 1))
+    y1 = np.zeros((trainNumE, 1))
+    print(len(y1))
+    y2 = np.ones((trainNumO, 1))
+    print(len(y2))
     y = np.concatenate((y1, y2), axis=0)
     print(np.shape(y))
 
-    answer = logisticTrain(X, y, theta, alpha, iters)
+    answer = logisticTrain(X, y, theta, alpha, iters,lam)
 
     return answer
 
 #classifys input image given a trained theta
 def predict(img,theta,bins,useColor,multiDim):
     colors = ("b", "g", "r")
+    img = cv2.GaussianBlur(img, (15, 15), 0)
     img = cv2.resize(img, (400,400), interpolation=cv2.INTER_AREA)
 
     if (useColor == False and multiDim == True):
@@ -249,7 +262,7 @@ def predict(img,theta,bins,useColor,multiDim):
 
 if __name__ == "__main__":
 
-    # thetaFinal = trainOnFoloder("rawdataset/empty","dataset/occupied",150,16,True,True)
+    # thetaFinal = trainOnFoloder("rawdataset/empty","rawdataset/occupied",150,32,True,True)
     # # img = cv2.imread("mydata/occupied/spot_2.jpg")
     # # img2 = cv2.imread("mydata/empty/137.jpg")
     # #print(predict(img,thetaFinal,16,True,True))
@@ -258,7 +271,7 @@ if __name__ == "__main__":
     # testFolder = loadFolder("spots_folder")
     #
     # for img in testFolder:
-    #     print predict(img,thetaFinal,16,True,True)
+    #     print predict(img,thetaFinal,32,True,True)
 
 
 
@@ -268,7 +281,7 @@ if __name__ == "__main__":
     occupiedSet = loadFolder("dataset/occupied")
 
     #best 100,true,true,16
-    trainNum = 40
+    trainNum = 100
     color = True
     multi = True
     bins = 32
@@ -280,6 +293,7 @@ if __name__ == "__main__":
 
     X = np.ones((np.shape(trainX)[0],np.shape(trainX)[1]+1))
     X[:,1:X.shape[1]] = trainX
+    X = X+0.001*np.ones(X.shape)
     print(np.shape(X))
     theta = np.zeros((X.shape[1],1))
     print(np.shape(theta))
@@ -290,7 +304,7 @@ if __name__ == "__main__":
 
     print("cost: ")
     print(costfunction(X,y,theta)[0])
-    answer = logisticTrain(X,y,theta,0.1,10)
+    answer = logisticTrain(X,y,theta,0.1,20,10)
     print("theta final: ")
     print(answer)
 
