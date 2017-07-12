@@ -1,0 +1,697 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+#include <utility>
+#include <fstream>
+#include <cmath>
+using namespace cv;
+using namespace std;
+
+int cntrl, scntrl1, scntrl2 = 0;
+pair <int, double> lineproperties(cv::Mat img);
+cv::Mat cdetect(cv::Mat img, int thickness);
+cv::Mat closespaces(cv::Mat img, double slope);
+std::vector<cv::Point> compress(std::vector<cv::Point> vecin, int defv, int cntrl);
+pair<std::vector<int>, int> compress2(std::vector<int> vecin);
+pair<std::vector<cv::Point>, std::vector<cv::Point>> aprxlinroi(std::vector<cv::Point> in1, std::vector<cv::Point> in2, std::vector<cv::Point> in3, std::vector<cv::Point> in4, double slope, int defv1, int defv2);
+cv::Mat findSpots(cv::Mat inM, int thickness);
+cv::Mat pip(cv::Mat inM);
+bool sortgrt(int i, int j);
+
+int main()
+{
+	cv::Mat img = cv::imread("l2s.jpg", 0); 
+	cv::Mat img2, img3, img4, img5, img6, imgf;
+	img2 = img.clone();
+	cv::threshold(img2, img2, 128, 255, CV_THRESH_BINARY);
+	pair <int, double> input = lineproperties(img2);
+	int thickness = input.first;
+	if (thickness <= 5) {
+		cv::dilate(img2, img2, Mat());
+		cv::dilate(img2, img2, Mat());
+		scntrl1 = 0;
+		scntrl2 = 0;
+		input = lineproperties(img2);
+	}
+	thickness = input.first;
+	double slope = input.second;
+	cout << thickness << endl;
+	img3 = cdetect(img2, thickness);
+	//cv::absdiff(img2, img3, img4);
+	//cv::dilate(img4, img4, Mat());
+	//img5 = closespaces(img4, 1);
+	//cv::addWeighted(img5, 1, img2, 1, 0, img6);
+	//cv::threshold(img6, img6, 128, 255, CV_THRESH_BINARY);
+	//imgf = findSpots(img6, 5);
+	namedWindow("final", CV_WINDOW_AUTOSIZE);
+	cv::imshow("final", img3);
+	cv::imwrite("output.jpg", img3);
+	waitKey();
+	destroyAllWindows();
+	return 0;
+}
+
+cv::Mat pip(cv::Mat inM) {
+	cv::Mat data = inM.clone();
+	cv::cvtColor(data, data, CV_BGR2GRAY);
+	cv::blur(data, data, cv::Size(5,5));
+	cv::Canny(data, data, 70, 150);
+	cv::dilate(data, data, Mat(), Point(-1,-1), 2);
+	cout << "oops" << endl;
+	return data;
+}
+
+pair <int, double> lineproperties(cv::Mat img) {
+	int vt, ht;
+	int	vti, vtf, hti, htf;
+	if (cntrl == 0) {
+		for (int m = (img.cols) / 2; m < img.cols; m++) {
+			for (int n = (img.rows) / 2; n < img.rows - 1; n++) {
+				if (scntrl1 == 0) {
+					if ((img.at<uchar>(n, m) - img.at<uchar>((n + 1), m)) == -255) {
+						vti = n + 1;
+						scntrl1 = 1;
+					}
+				}
+				if (scntrl1 == 1) {
+					if ((img.at<uchar>(n, m) - img.at<uchar>((n + 1), m)) == 255) {
+						vtf = n;
+						scntrl1 = -1;
+					}
+				}
+			}
+		}
+		vt = abs(vtf - vti);
+		cntrl = 1;
+	}
+	if (cntrl == 1) {
+		for (int w = (img.rows) / 2; w < img.rows; w++) {
+			for (int v = (img.cols) / 2; v < img.cols - 1; v++) {
+				if (scntrl2 == 0) {
+					if ((img.at<uchar>(w, v) - img.at<uchar>(w, (v + 1))) == -255) {
+						hti = v + 1;
+						scntrl2 = 1;
+					}
+				}
+				if (scntrl2 == 1) {
+					if ((img.at<uchar>(w, v) - img.at<uchar>(w, (v + 1))) == 255) {
+						htf = v;
+						scntrl2 = -1;
+					}
+				}
+			}
+		}
+		ht = abs(htf - hti);
+		cntrl = 0;
+	}
+	int thickness;
+	double slope = double(vt) / double(ht);
+	//cout << ht << "," << vt << endl;
+	if ((abs(ht - vt) <= 10)&((abs(vt - ht) <= 10))) {
+		thickness = (ht + vt) / 2;
+	}
+	if ((ht - vt) > 10) {
+		thickness = 1.15 * vt;
+	}
+	if ((vt - ht) > 10) {
+		thickness = 1.15 * ht;
+	}
+	pair <int, double> output;
+	output.first = thickness;
+	output.second = slope;
+	return output;
+}
+
+cv::Mat cdetect(cv::Mat img, int thickness) {
+	int xi1, yi1, xi2, yi2;
+	int pI;
+	int count = 0;
+	cv::Scalar colors = (0, 0, 255);
+	int size = 0.5 * thickness;
+	cv::Mat img2 = img.clone();
+	for (int j = size; j < (img.cols - size); j++) {
+		for (int i = size; i < (img.rows - size); i++) {
+			pI = img.at<uchar>(i, j);
+			if (pI == 255) {
+				Point temp;
+				temp.x = j;
+				temp.y = i;
+				xi1 = j - size;
+				xi2 = j + size;
+				yi1 = i - size;
+				yi2 = i + size;
+				for (int a = 0; a < 2 * size; a++) {
+					int t1 = img.at<uchar>(yi1, (xi1 + a));
+					int t2 = img.at<uchar>((yi1 + a), xi1);
+					int t3 = img.at<uchar>(yi2, (xi2 - a));
+					int t4 = img.at<uchar>((yi2 - a), xi2);
+					//cout << count << endl;
+					if (t1 == 255) {
+						count++;
+					}
+					if (t2 == 255) {
+						count++;
+					}
+					if (t3 == 255) {
+						count++;
+					}
+					if (t4 == 255) {
+						count++;
+					}
+				}
+				if ((count <= (thickness)+1)&(count >= (thickness - 1))) {
+					cv::circle(img2, temp, 1, colors, 1, 8);
+				}
+				count = 0;
+			}
+		}
+	}
+	return img2;
+}
+
+int countl = 0;
+cv::Mat closespaces(cv::Mat img, double slope) {
+	cv::Mat img2(img.size(), CV_8UC1, cv::Scalar(0, 0, 0));
+	cv::Mat img3(img2.size(), CV_8UC1);
+	img3 = Scalar(0);
+	cv::dilate(img, img, Mat());
+	cv::dilate(img, img, Mat());
+	cv::dilate(img, img, Mat());
+	cv::dilate(img, img, Mat());
+	cv::erode(img, img, Mat());
+	cv::erode(img, img, Mat());
+	cv::erode(img, img, Mat());
+	std::vector<std::vector<cv::Point>> contours;
+	std::vector<cv::Point> mpoints, endpoints11, endpoints12, endpoints21, endpoints22, endpoints11c, endpoints12c, endpoints21c, endpoints22c;
+	cv::findContours(img, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+	cv::Scalar colors = (0, 0, 255);
+	for (int i = 0; i < contours.size(); i++) {
+		Rect r = cv::boundingRect(contours[i]);
+		double x = r.x + (r.width / 2);
+		double y = r.y + (r.height / 2);
+		Point p;
+		p.x = x;
+		p.y = y;
+		cv::circle(img2, p, 3, colors, 1, 8);
+		mpoints.push_back (p);
+	}
+	for (int a = 0; a < mpoints.size(); a++) {
+		for (int b = 0; b < mpoints.size(); b++) {
+			if (abs(a - b) > 0) {
+				if (((abs(mpoints[a].x - mpoints[b].x)) <= 25)&(abs(mpoints[a].y - mpoints[b].y)) <= 25) {
+					Point p;
+					p.x = 0;
+					p.y = 0;
+					mpoints.erase(mpoints.begin() + b);
+				}
+			}
+		}
+	}
+	for (int j = 0; j < mpoints.size(); j++) {
+		for (int k = 0; k < mpoints.size(); k++) {
+			double dx1 = mpoints[j].x - mpoints[k].x;
+			double dy1 = mpoints[j].y - mpoints[k].y;
+			double s1 = dy1 / dx1;
+			double dt1 = sqrt(pow(dx1, 2) + pow(dy1, 2));
+			if (abs(j - k) > 0) {
+				if ((dt1 <= 75)&(dt1 >= 15)) {
+					for (int l = 0; l < mpoints.size(); l++) {
+						double dx2 = mpoints[k].x - mpoints[l].x;
+						double dy2 = mpoints[k].y - mpoints[l].y;
+						double s2 = dy2 / dx2;
+						double dt2 = sqrt(pow(dx2, 2) + pow(dy2, 2));
+						if ((abs(k - l) > 0)&(abs(l-j) > 0)) {
+							if ((dt2 <= 75)&(dt2 >= 15)) {
+								if (abs(dt2 - dt1) <= 5) {
+									if (abs(s2 - s1) <= 0.15) {
+										double s = (s1 + s2) / 2;
+										int x0 = ((-1 * (mpoints[k].y / s)) + mpoints[k].x);
+										int y0 = (mpoints[k].y - (s*mpoints[k].x));
+										int xe = ((img2.rows - mpoints[k].y) / s) + mpoints[k].x;
+										int ye = (s*(img2.cols - mpoints[k].x)) + mpoints[k].y;
+										Point d1, d2;
+										if (s > 0) {
+											if (x0 >= 0) {
+												d1.x = x0;
+												d1.y = 0;
+												endpoints11.push_back(d1);
+											}
+											if (y0 >= 0) {
+												d1.x = 0;
+												d1.y = y0;
+												endpoints12.push_back(d1);
+											}
+											if (xe <= img2.cols) {
+												d2.x = xe;
+												d2.y = img2.rows;
+												endpoints21.push_back(d2);
+											}
+											if (ye <= img2.rows) {
+												d2.x = img2.cols;
+												d2.y = ye;
+												endpoints22.push_back(d2);
+											}
+											//cv::line(img2, d1, d2, colors, 1, 8);
+											//cv::circle(img2, mpoints[j], 10, colors, 1, 8);
+											//cv::line(img2, mpoints[j], mpoints[l], cv::Scalar(255), 1, 8);
+										}									
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	endpoints11c = compress(endpoints11, 0, 0);
+	endpoints12c = compress(endpoints12, 0, 1);
+	endpoints21c = compress(endpoints21, img2.rows, 0);
+	endpoints22c = compress(endpoints22, img2.cols, 1);
+	pair<std::vector<cv::Point>, std::vector<cv::Point>> dout;
+	dout = aprxlinroi(endpoints11c, endpoints12c, endpoints21c, endpoints22c, slope, img2.cols, img2.rows);
+	std::vector<cv::Point> pts1, pts2;
+	pts1 = dout.first;
+	pts2 = dout.second;
+	std::vector<std::vector<cv::Point>> lines;
+	lines.resize(pts1.size());
+	cv::Mat mask2(img2.size(), CV_8U);
+	mask2 = Scalar(0);
+	for (int i = 0; i < pts1.size(); i++) {
+		cv::Mat mask(img2.size(), CV_8U);
+		mask = Scalar(0);
+		cout << pts1[i] << "," << pts2[i] << endl;
+		Point t1, t2, t3, t4;
+		if ((pts1[i].y == 0)&(pts2[i].x == img2.cols)) {
+			t1.y = 0;
+			t2.y = 0;
+			t1.x = pts1[i].x + (img2.cols*0.035);
+			t2.x = pts1[i].x - (img2.cols*0.035);
+			t3.x = img2.cols;
+			t4.x = img2.cols;
+			t3.y = pts2[i].y + (img2.rows*0.035);
+			t4.y = pts2[i].y - (img2.rows*0.035);
+			std::vector<cv::Point> tv;
+			tv.push_back(t1);
+			tv.push_back(t2);
+			tv.push_back(t3);
+			tv.push_back(t4);
+			cv::fillConvexPoly(mask, tv, colors, 8);
+			cv::fillConvexPoly(mask2, tv, colors, 8);
+			lines[countl].push_back(pts2[i]);
+			for (int j = 0; j < mpoints.size(); j++) {
+				Point tp = mpoints[j];
+				int tval = mask.at<uchar>(tp);
+				if (tval == 255) {
+					lines[countl].push_back(tp);
+				}
+			}
+			lines[countl].push_back(pts1[i]);
+			//cv::line(img2, t1, t4, colors, 4, 8, 0);
+			//cv::line(img2, t2, t3, colors, 4, 8, 0);
+			countl++;
+		}
+		if ((pts1[i].x == 0)&(pts2[i].x == img2.cols)) {
+			t1.x = 0;
+			t2.x = 0;
+			t1.y = pts1[i].y + (img2.rows*0.035);
+			t2.y = pts1[i].y - (img2.rows*0.035);
+			t3.x = img2.cols;
+			t4.x = img2.cols;
+			t3.y = pts2[i].y + (img2.rows*0.035);
+			t4.y = pts2[i].y - (img2.rows*0.035);
+			std::vector<cv::Point> tv;
+			tv.push_back(t1);
+			tv.push_back(t2);
+			tv.push_back(t3);
+			tv.push_back(t4);
+			cv::fillConvexPoly(mask, tv, colors, 8);
+			cv::fillConvexPoly(mask2, tv, colors, 8);
+			lines[countl].push_back(pts2[i]);
+			for (int j = 0; j < mpoints.size(); j++) {
+				Point tp = mpoints[j];
+				int tval = mask.at<uchar>(tp);
+				if (tval == 255) {
+					lines[countl].push_back(tp);
+				}
+			}
+			lines[countl].push_back(pts1[i]);
+			//cv::line(img2, t2, t4, colors, 4, 8, 0);
+			//cv::line(img2, t1, t3, colors, 4, 8, 0);
+			countl++;
+		}
+		if ((pts1[i].x == 0)&(pts2[i].y == img2.rows)) {
+			t1.x = 0;
+			t2.x = 0;
+			t1.y = pts1[i].y + (img2.rows*0.035);
+			t2.y = pts1[i].y - (img2.rows*0.035);
+			t3.x = pts2[i].x + (img2.cols*0.035);
+			t4.x = pts2[i].x - (img2.cols*0.035);
+			t3.y = img2.rows;
+			t4.y = img2.rows;
+			std::vector<cv::Point> tv;
+			tv.push_back(t1);
+			tv.push_back(t2);
+			tv.push_back(t3);
+			tv.push_back(t4);
+			cv::fillConvexPoly(mask, tv, colors, 8);
+			cv::fillConvexPoly(mask2, tv, colors, 8);
+			lines[countl].push_back(pts1[i]);
+			for (int j = 0; j < mpoints.size(); j++) {
+				Point tp = mpoints[j];
+				int tval = mask.at<uchar>(tp);
+				if (tval == 255) {
+					lines[countl].push_back(tp);
+				}
+			}
+			lines[countl].push_back(pts2[i]);
+			//cv::line(img2, t1, t4, colors, 4, 8, 0);
+			//cv::line(img2, t2, t3, colors, 4, 8, 0);
+			countl++;
+		}
+		if ((pts1[i].y == 0)&(pts2[i].y == img2.rows)) {
+			t1.y = 0;
+			t2.y = 0;
+			t1.x = pts1[i].x + (img2.rows*0.035);
+			t2.x = pts2[i].x - (img2.rows*0.035);
+			t3.y = img2.rows;
+			t4.y = img2.rows;
+			t3.x = pts1[i].x + (img2.cols*0.035);
+			t4.x = pts2[i].x - (img2.cols*0.035);
+			std::vector<cv::Point> tv;
+			tv.push_back(t1);
+			tv.push_back(t2);
+			tv.push_back(t3);
+			tv.push_back(t4);
+			cv::fillConvexPoly(mask, tv, colors, 8);
+			cv::fillConvexPoly(mask2, tv, colors, 8);
+			lines[countl].push_back(pts2[i]);
+			for (int j = 0; j < mpoints.size(); j++) {
+				Point tp = mpoints[j];
+				int tval = mask.at<uchar>(tp);
+				if (tval == 255) {
+					lines[countl].push_back(tp);
+				}
+			}
+			lines[countl].push_back(pts1[i]);
+			//cv::line(img2, t1, t3, colors, 4, 8, 0);
+			//cv::line(img2, t2, t4, colors, 4, 8, 0);
+			countl++;
+		}
+	}
+	img2.copyTo(img3, mask2);
+	for (int i = 0; i < lines.size(); i++) {
+		for (int j = 0; j < lines[i].size() - 1; j++) {
+			cv::line(img3, lines[i][j], lines[i][j + 1], colors, 2, 8);
+		}
+	}
+	return img3;
+}
+
+std::vector<cv::Point> compress(std::vector<cv::Point> vecin, int defv, int cntrl) {
+std::vector<cv::Point> vecout;
+std::vector<int> cvals;
+if (cntrl == 1) {
+	for (int i = 0; i < vecin.size(); i++) {
+		cvals.push_back(vecin[i].y);
+	}
+	sort(cvals.begin(), cvals.end());
+	for (int i = 0; i < cvals.size(); i++) {
+		vecin[i].y = cvals[i];
+	}
+	for (int i = 0; i < vecin.size(); i++) {
+		if (vecin[i].y >= 1) {
+			double ncnt = vecin[i].y;
+			double dnct = 1;
+			for (int j = 0; j < vecin.size(); j++) {
+				if (abs(j - i) > 0) {
+					if (vecin[j].y >= 1) {
+						if (abs(vecin[j].y - vecin[i].y) <= 50) {
+							ncnt = ncnt + vecin[j].y;
+							dnct++;
+							vecin[j].y = 0;
+						}
+					}
+				}
+			}
+			int val = ncnt / dnct;
+			Point valp;
+			valp.x = defv;
+			valp.y = val;
+			vecout.push_back(valp);
+		}
+	}
+}
+if (cntrl == 0) {
+	for (int i = 0; i < vecin.size(); i++) {
+		cvals.push_back(vecin[i].x);
+	}
+	sort(cvals.begin(), cvals.end());
+	for (int i = 0; i < cvals.size(); i++) {
+		vecin[i].x = cvals[i];
+	}
+	for (int i = 0; i < vecin.size(); i++) {
+		if (vecin[i].x >= 1) {
+			double ncnt = vecin[i].x;
+			double dnct = 1;
+			for (int j = 0; j < vecin.size(); j++) {
+				if (abs(j - i) > 0) {
+					if (vecin[j].x >= 1) {
+						if (abs(vecin[j].x - vecin[i].x) <= 50) {
+							ncnt = ncnt + vecin[j].x;
+							dnct++;
+							vecin[j].x = 0;
+						}
+					}
+				}
+			}
+			int val = ncnt / dnct;
+			Point valp;
+			valp.y = defv;
+			valp.x = val;
+			vecout.push_back(valp);
+		}
+	}
+}
+return vecout;
+}
+
+int count1, count2 = 0;
+pair<std::vector<cv::Point>, std::vector<cv::Point>> aprxlinroi(std::vector<cv::Point> in1, std::vector<cv::Point> in2, std::vector<cv::Point> in3, std::vector<cv::Point> in4, double slope, int defv1, int defv2) {
+	std::vector<int> val1, val1c, val2, val3, val4;
+	std::vector<cv::Point> out1, out2;
+	pair<std::vector<cv::Point>, std::vector<cv::Point>> dout;
+	if (slope >= 0) {
+		int aprxfactor = ((in1.size() + in2.size()) - (in3.size() + in4.size()));
+		for (int i = 0; i < in1.size(); i++) {
+			val1.push_back(in1[i].x);
+		}
+		for (int i = 0; i < in2.size(); i++) {
+			val2.push_back(in2[i].y);
+		}
+		for (int i = 0; i < in3.size(); i++) {
+			val3.push_back(in3[i].x);
+		}
+		for (int i = 0; i < in4.size(); i++) {
+			val4.push_back(in4[i].y);
+		}
+		sort(val1.begin(), val1.end(), sortgrt);
+		sort(val3.begin(), val3.end(), sortgrt);
+		val1.insert(val1.end(), val2.begin(), val2.end());
+		val4.insert(val4.end(), val3.begin(), val3.end());
+		pair<std::vector<int>, int> dataout;
+		std::vector<int> minpos;
+		/*for (int i = 0; i < val4.size(); i++) {
+			cout << val4[i] << endl;
+		}
+		cout << aprxfactor << endl;*/
+		if (aprxfactor > 0) {
+			for (int i = 0; i < abs(aprxfactor); i++) {
+				dataout = compress2(val1);
+				val1 = dataout.first;
+				minpos.push_back(dataout.second);
+			}
+		}
+		if (aprxfactor < 0) {
+			for (int i = 0; i < abs(aprxfactor); i++) {
+				dataout = compress2(val4);
+				val4 = dataout.first;
+				minpos.push_back(dataout.second);
+			}
+		}
+		/*for (int i = 0; i < minpos.size(); i++) {
+			cout << minpos[i] << endl;
+		}*/
+		if (aprxfactor >= 0) {
+			for (int j = 0; j < minpos.size(); j++) {
+				if (minpos[j] <= in1.size()) {
+					count1++;
+				}
+				if (minpos[j] > in1.size()) {
+					count2++;
+				}
+			}
+			for (int i = 0; i < (in1.size() - count1); i++) {
+				Point temp;
+				temp.x = val1[i];
+				temp.y = 0;
+				out1.push_back(temp);
+			}
+			for (int k = 0; k < (in2.size() - count2); k++) {
+				Point temp2;
+				temp2.x = 0;
+				temp2.y = val1[in1.size() - count1 + k];
+				out1.push_back(temp2);
+			}
+			for (int i = 0; i < in4.size(); i++) {
+				Point temp3;
+				temp3.y = val4[i];
+				temp3.x = defv1;
+				out2.push_back(temp3);
+			}
+			for (int i = 0; i < in3.size(); i++) {
+				Point temp4;
+				temp4.y = defv2;
+				temp4.x = val4[in4.size() + i];
+				out2.push_back(temp4);
+			}
+		}
+		if (aprxfactor < 0) {
+			for (int j = 0; j < minpos.size(); j++) {
+				if (minpos[j] <= in4.size()) {
+					count1++;
+				}
+				if (minpos[j] > in3.size()) {
+					count2++;
+				}
+			}
+			for (int i = 0; i < in1.size(); i++) {
+				Point temp;
+				temp.x = val1[i];
+				temp.y = 0;
+				out1.push_back(temp);
+			}
+			for (int k = 0; k < in2.size(); k++) {
+				Point temp2;
+				temp2.x = 0;
+				temp2.y = val1[in1.size() - count1 + k];
+				out1.push_back(temp2);
+			}
+			for (int i = 0; i < (in4.size() - count1); i++) {
+				Point temp3;
+				temp3.y = val4[i];
+				temp3.x = defv1;
+				out2.push_back(temp3);
+			}
+			for (int i = 0; i < (in3.size() - count2); i++) {
+				Point temp4;
+				temp4.y = defv2;
+				temp4.x = val4[in4.size() - count1 + i];
+				out2.push_back(temp4);
+			}
+		}
+		dout.first = out1;
+		dout.second = out2;
+		return dout;
+	}
+}
+
+pair<std::vector<int>, int> compress2(std::vector<int> vecin) {
+	std::vector<int> distances;
+	std::vector<int> data = vecin;
+	for (int i = 0; i < vecin.size() - 1; i++) {
+		double d = abs(vecin[i] - vecin[i + 1]);
+		distances.push_back(d);
+	}
+	int minpos = distance(distances.begin(), min_element(distances.begin(), distances.end()));
+	data[minpos] = (data[minpos] + data[minpos + 1]) / 2;
+	data.erase(data.begin() + minpos + 1);
+	pair<std::vector<int>, int> dataout;
+	dataout.first = data;
+	dataout.second = minpos;
+	return dataout;
+}
+
+bool sortgrt(int i, int j) { return (i>j); }
+
+cv::Mat findSpots(cv::Mat inM, int thickness) {
+	std::vector<std::vector<cv::Point>> contours;
+	cv::Mat data = inM.clone();
+	cv::Mat data2 = data.clone();
+	cv::Scalar colors = (255);
+	cv::threshold(data2, data2, 128, 255, CV_THRESH_BINARY);
+	cv::findContours(data2, contours, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	double ca;
+	Rect cr;
+	int cx, cy, w, h;
+	int index = 0;
+	Point cp, r1, r2, r3, r4;
+	int counts = 0;
+	//ofstream out("out.txt");
+	for (int i = 0; i < contours.size(); i++) //--PRINT OUT POINTS FOUND BY FINDCOUNTOURS()
+	{
+		ca = contourArea(contours[i]);
+		//cout << ca << endl;
+		if ((ca > 500)&(ca < 5000)) {
+			cr = boundingRect(contours[i]);
+			cv::rectangle(data, cr, colors, 1, 8);
+			cx = cr.x;
+			cy = cr.y;
+			w = cr.width;
+			h = cr.height;
+			if (((cx + w) < inM.cols)&((cy + h) < inM.rows)) {
+				for (int v = 0; v < w; v++) {
+					int t1 = inM.at<uchar>(cy, (cx + v));
+					if (t1 == 255) {
+						Point temp1;
+						temp1.x = cx + v + (thickness * 0.5);
+						temp1.y = cy;
+						r1 = temp1;
+						cv::circle(data, temp1, 3, colors, 1, 8);
+						break;
+					}
+				}
+				for (int v2 = 0; v2 < h; v2++) {
+					int t2 = inM.at<uchar>((cy + v2), cx);
+					if (t2 == 255) {
+						Point temp2;
+						temp2.x = cx;
+						temp2.y = cy + v2 + (thickness * 0.5);
+						r2 = temp2;
+						cv::circle(data, temp2, 3, colors, 1, 8);
+						break;
+					}
+				}
+				for (int v3 = 0; v3 < w; v3++) {
+					int t3 = inM.at<uchar>((cy + h), (cx + v3));
+					if (t3 == 255) {
+						Point temp3;
+						temp3.x = cx + v3 + (thickness * 0.5);
+						temp3.y = cy + h;
+						r3 = temp3;
+						cv::circle(data, temp3, 3, colors, 1, 8);
+						break;
+					}
+				}
+				for (int v4 = 0; v4 < h; v4++) {
+					int t4 = inM.at<uchar>((cy + v4), (cx + w));
+					if (t4 == 255) {
+						Point temp4;
+						temp4.x = cx + w;
+						temp4.y = cy + v4 + (thickness * 0.5);
+						r4 = temp4;
+						cv::circle(data, temp4, 3, colors, 1, 8);
+						break;
+					}
+				}
+			}
+			//cout << r1 << "," << r2 << "," << r3 << "," << r4 << "," << counts << endl;
+			//out << r1.x << " " << r1.y << endl << r2.x << " " << r2.y << endl << r3.x << " " << r3.y << endl << r4.x << " " << r4.y << endl;
+			counts++;
+		}
+	}
+	return data;
+}
