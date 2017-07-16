@@ -9,7 +9,7 @@ auto =True
 startTime = time()
 
 #train on rawdata
-thetaFinal = trainOnFoloder("rawdataset/empty","rawdataset/occupied",-1,32,True,True,lam=100)
+thetaFinal = trainOnFolder("rawdataset/empty","rawdataset/occupied",-1,32,True,True,lam=100)
 testFolder = loadFolder("spots_folder")
 
 #start stream

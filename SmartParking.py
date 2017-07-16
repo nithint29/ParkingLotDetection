@@ -5,6 +5,8 @@ from PolygonDrawer import *
 from parkingSpaceExtraction import *
 from detection import *
 from Prepare import *
+import os
+import pickle
 
 class SmartParking:
     '''
@@ -23,17 +25,29 @@ class SmartParking:
         self.__lr_model = None
         self.__usesvm = False
         self.__uselr = True
-        self.thetaFinal = trainOnFoloder("rawdataset/empty","rawdataset/occupied",-1,32,True,True)
+        self.thetaFinal = trainOnFolder("dataset/empty","dataset/occupied",-1,16,True,True)
 
     #initialize from image list and file folder
     def initial(self, img_list, file_folder):
         #initialize from image list
         self.__file_folder = file_folder
+
         for i, img in enumerate(img_list):
-            coordinate_path = file_folder + "/coordinates/coordinate_" + "{:03d}".format(i) + ".txt"
-            p = PolygonDrawer("poly", img,coordinate_path,file_folder+"/spots_folder{}".format(i))
+            mydir =os.getcwd()+os.sep+file_folder
+            coordpath = mydir+"/coordinates/"
+            if(os.path.exists(coordpath)==False):
+                os.makedirs(os.path.dirname(coordpath))
+            coordinate_path = coordpath+"coordinate_" + "{:03d}".format(i) + ".txt"
+            if(os.path.exists(coordinate_path)==False):
+                file = open(coordinate_path,'w+')
+                file.close()
+            if (os.path.exists(mydir+"/spots_folder{}".format(i)) == False):
+                os.makedirs(mydir+"\spots_folder{}".format(i))
+                print("making folders")
+            p = PolygonDrawer("poly", img,coordinate_path,mydir+"/spots_folder{}".format(i))
             p.run()
             self.__camera_position.append(i)
+
         #assign the svm model classifier
         if(self.__usesvm):
             self.__svm_model = SVM(file_path="svm_model1.xml")
