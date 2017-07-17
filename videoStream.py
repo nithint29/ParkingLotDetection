@@ -46,10 +46,10 @@ while(True):
             for i, img in enumerate(testImages):
                 isOcc = predict(img, thetaFinal, 32, True, True)
                 initState.append(isOcc)
-                # if (isOcc == 1):
-                #     cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
-                # elif (isOcc == 0):
-                #     cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+                if (isOcc == 1):
+                    cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+                elif (isOcc == 0):
+                    cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
 
     initial = False
 

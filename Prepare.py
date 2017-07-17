@@ -235,7 +235,7 @@ def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0
     return answer
 
 
-#classifys input image given a trained theta
+#classifys input image given a trained theta and raw image
 def predict(img,theta,bins,useColor,multiDim,hists=True):
     colors = ("b", "g", "r")
     img = cv2.GaussianBlur(img, (15, 15), 0)
@@ -266,6 +266,13 @@ def predict(img,theta,bins,useColor,multiDim,hists=True):
     Xbias[1:(np.shape(Xbias)[0])] = X
     return (1 if (sigmoid(np.dot(Xbias,theta))>0.5) else 0)
 
+def predictSet(imgList,theta,bins,useColor,multiDim,hists=True):
+    preds = []
+    for img in imgList:
+        preds.append(predict(img,theta,bins,useColor,multiDim,hists=True))
+    return preds
+
+
 
 if __name__ == "__main__":
 
@@ -284,8 +291,8 @@ if __name__ == "__main__":
 
 
     # regression
-    emptySet = loadFolder("dataset/empty")
-    occupiedSet = loadFolder("dataset/occupied")
+    emptySet = loadFolder("rawdataset/empty")
+    occupiedSet = loadFolder("rawdataset/occupied")
 
     #best 100,true,true,16
     trainNum = 100
@@ -312,9 +319,6 @@ if __name__ == "__main__":
     print("cost: ")
     print(costfunction(X,y,theta)[0])
     answer = logisticTrain(X,y,theta,0.1,20,10)
-    output = open('LR.pkl','wb')
-    pickle.dump(answer,output)
-    output.close()
     print("theta final: ")
     print(answer)
 
@@ -339,15 +343,32 @@ if __name__ == "__main__":
         if(sigmoid(np.dot(img,answer))>0.5):
             correctOcc+=1
     print(1.0*correctOcc/(150-trainNum))
+    print("\n")
+
+    #Testing on spots_folder
+    thetaFinal = trainOnFolder("rawdataset/empty", "rawdataset/occupied", -1, 32, True, True, lam=100)
+    testFolder = loadFolder("spots_folder", False)
+    #Save theta values to file
+    output = open('LR.pkl','wb')
+    pickle.dump(thetaFinal,output)
+    output.close()
+    testEmpty = np.array(loadFolder("spots_folder/generatedEmpty",False))
+    testOcc = np.array(loadFolder("spots_folder/generatedOccupied",False))
+    print("Empty correct: {}".format(np.sum(np.array(predictSet(testEmpty,thetaFinal, 32, True, True))==0)/(1.0*len(testEmpty))))
+    print("Occupied correct: {} \n".format(np.sum(predictSet(testOcc, thetaFinal, 32, True, True)) / (1.0 * len(testOcc))))
+
+
 
     print("\nScikit Learn Stuff")
     print("SVM:")
     emptySet = np.array(emptySet)
     occupiedSet = np.array(occupiedSet)
-    rng = np.random.RandomState(1)
+    rng = np.random.RandomState(5)
     X = createData(np.concatenate((emptySet,occupiedSet),axis=0),32,color,multi,hists=True)
     X = np.array(X)
     y = np.concatenate((np.zeros(len(emptySet)),np.ones(len(occupiedSet))))
+    print(len(emptySet))
+    print(len(occupiedSet))
 
     #randomize data order
     ind = np.floor(rng.rand(len(X))*len(X)).astype(int)

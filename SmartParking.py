@@ -44,7 +44,7 @@ class SmartParking:
                 file = open(coordinate_path,'w+')
                 file.close()
             if (os.path.exists(mydir+"/spots_folder{}".format(i)) == False):
-                os.makedirs(mydir+"\spots_folder{}".format(i))
+                os.makedirs(mydir+"/spots_folder{}".format(i))
                 print("making folders")
             p = PolygonDrawer("poly", img,coordinate_path,mydir+"/spots_folder{}".format(i))
             p.run()
