@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<!-- saved from url=(0076)http://www.completewebdevelopercourse.com/content/5-bootstrap/5.9.html#about -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      
+    
+      
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css" integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd" crossorigin="anonymous">
+      
+    
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+      
+      <style>
+      
+          .jumbotron {
+              
+              background-image: url(../static/images/background.jpg);
+              text-align: center;
+              margin-top: 50px;
+          }
+          
+          #email {
+              
+              width: 300px;
+              
+          }
+          
+          #appSummary {
+              
+              text-align: center;
+              margin-top:50px;
+              margin-bottom: 50px;
+              
+          }
+          
+          .card-img-top {
+              
+              width: 100%;
+              
+          }
+          
+          #appStoreIcon {
+              
+              width: 200px;
+              
+          }
+          
+          #footer {
+              
+              background-color: aqua;
+              padding-top: 150px;
+              margin-top: 50px;
+              text-align: center;
+              padding-bottom: 150px;
+          }
+          
+          body {
+              
+              position: relative;
+              
+          }
+      
+      </style>
+      
+  </head>
+    
+  <body data-spy="scroll" data-target="#navbar" data-offset="150">
+      
+        <nav class="navbar navbar-light bg-faded navbar-fixed-top" id="navbar">
+          <a class="navbar-brand" href="#parking">Winlab Parking</a>
+          <ul class="nav navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link active" href="#jumbotron">Home <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#about">About</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#footer">View parking</a>
+            </li>
+          </ul>
+          <form class="form-inline pull-xs-right">
+            <input class="form-control" type="email" placeholder="Email">
+              <input class="form-control" type="password" placeholder="Password">
+            <button class="btn btn-success" type="submit">Login</button>
+          </form>
+        </nav>
+
+        <div class="jumbotron" id="jumbotron">
+          <h1 class="display-3">Smart Parking System</h1>
+          <p class="lead">Get to know where have available parking spots</p>
+          <hr class="m-y-2">
+          <p>Want to know more? Join our mailing list!</p>
+
+        <form class="form-inline">
+          <div class="form-group">
+            <label class="sr-only" for="email">Email address</label>
+            <div class="input-group">
+              <div class="input-group-addon">@</div>
+              <input type="email" class="form-control" id="email" placeholder="Your email">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Sign up</button>
+        </form>
+        </div>
+      
+      <div class="container">
+      
+        <div class="row" id="appSummary">
+          
+            <h1>Accuracy Parking lot information</h1>
+            <p class="lead">good performance， high accuracy</p>
+          
+          </div>
+          
+      </div>
+      
+      {% block content %}
+      <div class="container" id="about">
+      <div class="card-deck-wrapper">
+  <div class="card-deck">
+    <div class="card">
+      <img class="card-img-top" src="{{ img_name[0] }}" alt="Card image cap">
+      <div class="card-block">
+        <h4 class="card-title"><i class="fa fa-anchor"></i> Parking lot 0 </h4>
+        <p class="card-text">{{ parkingInfo[0] }}</p>
+        
+      </div>
+    </div>
+    <div class="card">
+      <img class="card-img-top" src="{{ img_name[1] }}" alt="Card image cap">
+      <div class="card-block">
+        <h4 class="card-title"><i class="fa fa-bicycle"></i> Parking lot 1</h4>
+        <p class="card-text">{{ parkingInfo[1] }}</p>
+        
+      </div>
+    </div>
+    <div class="card">
+      <img class="card-img-top" src="{{ img_name[2] }}" alt="Card image cap">
+      <div class="card-block">
+        <h4 class="card-title"><i class="fa fa-birthday-cake"></i> Parking lot 2</h4>
+        <p class="card-text">{{ parkingInfo[2] }}</p>
+       
+      </div>
+    </div>
+  </div>
+</div>
+          </div>
+      {% endblock %}
+      
+      <div id="footer">
+      
+        <div class="row">
+          
+                <h2>It works ! </h2>
+            
+            <p class="lead">We can park!!</p>
+            
+            <p><a href="#"><img id="winlab_pic" src="../static/images/WINLABLogo-sm.jpg"></a
+            
+          <a href="#"><img id="rutgers_pic" src="../static/images/Rutgers.png"></a></p>
+            
+          
+          </div>
+      
+      </div>
+      
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha384-vZ2WRJMwsjRMW/8U7i6PWi6AlO1L79snBrmgiDpgIWJ82z8eA5lenwvxbMV1PAh7" crossorigin="anonymous"></script>
+  
+    
+<div id="cntvlive2-is-installed"></div></body></html>
