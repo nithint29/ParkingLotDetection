@@ -1,6 +1,6 @@
 from Prepare import *
 from PolygonDrawer import *
-from time import  time
+from time import time
 
 #numSamples = 150
 frameNum=0
@@ -10,17 +10,24 @@ startTime = time()
 
 #train on rawdata
 thetaFinal = trainOnFoloder("rawdataset/empty","rawdataset/occupied",-1,32,True,True,lam=100)
-testFolder = loadFolder("spots_folder")
+testFolder = loadFolder("spots_folder",False)
 
 #start stream
 cap = cv2.VideoCapture("rtsp://bigbrother.winlab.rutgers.edu/stream1")
 initial = True
 initState = []
 ret, prevFrame = cap.read()
+ret, frame = cap.read()
 
 while(True):
     # Capture frame-by-frame
+    prevFrame=frame;
     ret, frame = cap.read()
+    if(frame==None or (np.size(frame,0)<=1) or (np.size(frame,1)<=1)):
+        ret, frame = cap.read()
+        print("error")
+        continue
+
     p = PolygonDrawer("frame", frame, "coordinates.txt", "spots_folder")
     coordList = p.readSpotsCoordinates("coordinates.txt")
 
@@ -38,10 +45,10 @@ while(True):
             for i, img in enumerate(testImages):
                 isOcc = predict(img, thetaFinal, 32, True, True)
                 initState.append(isOcc)
-                if (isOcc == 1):
-                    cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
-                elif (isOcc == 0):
-                    cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+                # if (isOcc == 1):
+                #     cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+                # elif (isOcc == 0):
+                #     cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
 
     initial = False
 
@@ -79,8 +86,12 @@ while(True):
         if key & 0xFF == ord('q'):
             break
         if key & 0xFF == ord('w'):
-            diff = np.sum(np.sum(np.sum(frame-prevFrame,0),0))
-            baseline = np.sum(np.sum(np.sum(frame,0),0))
+            frameBlur = cv2.GaussianBlur(frame,(15,15),0)
+            prevFrameBlur = cv2.GaussianBlur(prevFrame, (15, 15), 0)
+            diff = np.sum(np.sum(np.sum(frameBlur-prevFrameBlur,0),0))
+            baseline = np.sum(np.sum(np.sum(frameBlur,0),0))
+            # cv2.imshow("blur",frameBlur)
+            # cv2.waitKey(0)
             print(diff)
             print(baseline)
             print(1.0*diff/baseline)

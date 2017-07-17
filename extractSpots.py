@@ -7,18 +7,27 @@ print(sys.version)
 
 def slope((x1,y1),(x2,y2)):
     return float(y2-y1)/float(x2+.001-x1)
-def myThresh(img):
+def myThresh(img,k):
+    thresh = np.copy(img)
+    width = np.shape(img)[1]
+    height = np.shape(img)[0]
+    for i in range(0,width,k):
+        for j in range(0,height,k):
+            ret,thresh[j:j+k,i:i+k] = cv2.threshold(thresh[j:j+k,i:i+k],0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    return thresh
 
-    return
 def myCorners(img):
     return
 
 
-img = cv2.imread("parkingLot.jpg")
+img = cv2.imread("emptyParking.png")
 #img = cv2.resize(img,(400,400))
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-gray = cv2.GaussianBlur(gray,(15,15),0)
+gray = cv2.bilateralFilter(gray,5,25,25)
 ret,thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+mythresh = myThresh(gray,100)
+cv2.imshow("my threshold",mythresh)
+cv2.waitKey(0)
 thresh2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,21,2)
 
 #erode
@@ -35,13 +44,14 @@ for i in corners:
 #cv2.waitKey(0)
 
 
+#img = cv2.imread("emptyParking.png")
 img = cv2.imread("parkingExample.jpg")
-#img = cv2.imread("parkingLot.jpg")
 #img = cv2.resize(img,(400,400))
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 #gray = cv2.GaussianBlur(gray,(5,5),0)
 gray = cv2.bilateralFilter(gray,5,25,25)
 ret,thresh = cv2.threshold(gray,127,255,cv2.THRESH_BINARY)
+mythresh = myThresh(gray,100)
 thresh2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,21,2)
 
 edges = cv2.Canny(gray,100,200)
@@ -71,13 +81,18 @@ for i in corners:
     lineY = y+sl*(1000-x)
     cv2.line(gray,(x,y),(int(closeX),int(closeY)),(255,255,255),thickness=2)
     cv2.line(gray,(x,y),(int(x+(x-closeX)),int(y+(y-closeY))),(255,255,255),thickness=2)
+    cv2.line(mythresh, (x, y), (int(closeX), int(closeY)), (0, 0, 0), thickness=2)
+    cv2.line(mythresh, (x, y), (int(x + (x - closeX)), int(y + (y - closeY))), (0, 0, 0), thickness=2)
 
 
 ret,thresh = cv2.threshold(gray,80,255,cv2.THRESH_BINARY_INV)
+#mythresh = myThresh(gray,100)
 thresh2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,21,2)
 
 #find and process contours
-_, contours, _= cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+#mythresh = cv2.threshold(mythresh,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+mythresh = cv2.erode(mythresh,kernel,iterations=1)
+_, contours, _= cv2.findContours(mythresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 print(len(contours))
 
 validCont = []
@@ -102,7 +117,7 @@ for i in validCont:
     cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
 
 #cv2.drawContours(img, validCont, -1, (0,255,0),2)
-cv2.imshow("Thresholded",gray)
+cv2.imshow("Thresholded",mythresh)
 cv2.waitKey(0)
 
 
@@ -124,5 +139,5 @@ dst = cv2.dilate(dst,kernel,iterations=1)
 # Threshold for an optimal value, it may vary depending on the image.
 img[dst>0.4*dst.max()]=[255,255,255]
 
-cv2.imshow('Harris',img)
-cv2.waitKey(0)
+# cv2.imshow('Harris',img)
+# cv2.waitKey(0)

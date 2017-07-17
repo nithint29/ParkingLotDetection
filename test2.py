@@ -16,22 +16,26 @@ import cv2
 # cv2.imshow('equ',equ)
 # cv2.waitKey(0)
 
-car = cv2.imread('spots_folder/spot_'+'4.jpg',0)
-space = cv2.imread('spots_folder/spot_'+'8.jpg',0)
-eq = cv2.equalizeHist(car)
+# car = cv2.imread('spots_folder/spot_'+'4.jpg',0)
+# space = cv2.imread('spots_folder/spot_'+'8.jpg',0)
+# eq = cv2.equalizeHist(car)
+#
+# hist_car = cv2.calcHist([car],[0],None,[256],[0,256])
+# hist_space = cv2.calcHist([space],[0],None,[256],[0,256])
+# hist_eq = cv2.calcHist([eq],[0],None,[256],[0,256])
+#
+# plt.subplot(221), plt.imshow(car, 'gray')
+# plt.subplot(222), plt.plot(hist_car)
+#
+# plt.subplot(223), plt.imshow(eq, 'gray')
+# plt.subplot(224), plt.plot(hist_eq)
+#
+#
+# plt.show()
 
-hist_car = cv2.calcHist([car],[0],None,[256],[0,256])
-hist_space = cv2.calcHist([space],[0],None,[256],[0,256])
-hist_eq = cv2.calcHist([eq],[0],None,[256],[0,256])
-
-plt.subplot(221), plt.imshow(car, 'gray')
-plt.subplot(222), plt.plot(hist_car)
-
-plt.subplot(223), plt.imshow(eq, 'gray')
-plt.subplot(224), plt.plot(hist_eq)
-
-
-plt.show()
+A = np.array([1,2,3,4])
+B = np.array([0, 1, 0, 1])
+print(A[A==2])
 
 
 # Numpy equalization
