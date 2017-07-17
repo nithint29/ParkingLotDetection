@@ -25,7 +25,9 @@ class SmartParking:
         self.__lr_model = None
         self.__usesvm = False
         self.__uselr = True
-        self.thetaFinal = trainOnFolder("dataset/empty","dataset/occupied",-1,16,True,True)
+        pkl = open('LR.pkl','rb')
+        self.thetaFinal = pickle.load(pkl)
+        pkl.close()
 
     #initialize from image list and file folder
     def initial(self, img_list, file_folder):
@@ -52,7 +54,9 @@ class SmartParking:
         if(self.__usesvm):
             self.__svm_model = SVM(file_path="svm_model1.xml")
         elif(self.__uselr):
-            self.__lr_model = SVM(file_path="svm_model1.xml")
+            pkl = open('LR.pkl', 'rb')
+            self.thetaFinal = pickle.load(pkl)
+            pkl.close()
 
 
     #process with the input image and positions

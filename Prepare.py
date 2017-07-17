@@ -3,9 +3,8 @@ from matplotlib import pyplot as plt
 import cv2
 import os
 import glob
-import itertools
-import math
 from sklearn import svm
+import pickle
 
 def readFromDict(imageDict):
     for i in imageDict:
@@ -292,7 +291,7 @@ if __name__ == "__main__":
     trainNum = 100
     color = True
     multi = True
-    bins = 16
+    bins = 32
 
     trainX1 = createData(emptySet[0:trainNum],bins,color,multi)
     trainX2 = createData(occupiedSet[0:trainNum],bins,color,multi)
@@ -313,6 +312,9 @@ if __name__ == "__main__":
     print("cost: ")
     print(costfunction(X,y,theta)[0])
     answer = logisticTrain(X,y,theta,0.1,20,10)
+    output = open('LR.pkl','wb')
+    pickle.dump(answer,output)
+    output.close()
     print("theta final: ")
     print(answer)
 
