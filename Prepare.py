@@ -3,8 +3,8 @@ from matplotlib import pyplot as plt
 import cv2
 import os
 import glob
-import itertools
-import math
+from sklearn import svm
+import pickle
 
 def readFromDict(imageDict):
     for i in imageDict:
@@ -152,7 +152,7 @@ def computePixels(imgList):
 def costfunction(X,y,theta,lam = 0):
     n = len(X)
     if(n != len(y)):
-        print "Size of X and y does not match"
+        print("Size of X and y does not match")
         return None
     cost = (1.0/n)*np.sum(np.dot(-1.0*y.T,np.log10(sigmoid( (np.dot(1.0*X,theta))/(400.0*400) ))) - np.dot((1.0-y).T, np.log10(1.0-sigmoid( np.dot(1.0*X,theta)/(400.0*400) )) ) ,axis=0)
     gradient = np.dot((1.0/n)*(X.T),sigmoid(X.dot(theta))-y)
@@ -172,7 +172,7 @@ def logisticTrain(X,y,theta,alpha = 0.1,iter = 500,lam=0):
     return theta
 
 #generate training data from image list of color images
-def createData(imgList,bins = 64,useColor = False,multiDim = False):
+def createData(imgList,bins = 64,useColor = False,multiDim = False,hists=True):
     trainData = []
     colors = ("b", "g", "r")
 
@@ -180,7 +180,10 @@ def createData(imgList,bins = 64,useColor = False,multiDim = False):
         print("Can not use multidimensional histograms without color, using grayscale only instead")
 
     for img in imgList:
-        if(useColor and multiDim ):
+        if(hists == False):
+            trainData.append(img.flatten())
+
+        elif(useColor and multiDim ):
             trainData.append(np.array(cv2.calcHist([img], [0, 1, 2], None, [bins, bins, bins], [0, 256, 0, 256, 0, 256])).flatten())
 
         elif(useColor == True and multiDim == False):
@@ -198,7 +201,7 @@ def createData(imgList,bins = 64,useColor = False,multiDim = False):
 
 #takes training data from input folder and outputs the resulting theta (with one extra dimension)
 #set trainNum = -1 to use whole folder
-def trainOnFoloder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 20,hists = True,lam=0):
+def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 20,hists = True,lam=0):
     # best 100,true,true,16
     emptySet = loadFolder(emptyFolder)
     occupiedSet = loadFolder(occupiedFolder)
@@ -210,8 +213,8 @@ def trainOnFoloder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 
         trainNumE = len(emptySet)
         trainNumO = len(occupiedSet)
 
-    trainX1 = createData(emptySet[0:trainNumE], bins, color, multi)
-    trainX2 = createData(occupiedSet[0:trainNumO], bins, color, multi)
+    trainX1 = createData(emptySet[0:trainNumE], bins, color, multi,hists=hists)
+    trainX2 = createData(occupiedSet[0:trainNumO], bins, color, multi,hists=hists)
     trainX = trainX1 + trainX2
     print(np.shape(trainX))
 
@@ -231,16 +234,20 @@ def trainOnFoloder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 
 
     return answer
 
+
 #classifys input image given a trained theta
-def predict(img,theta,bins,useColor,multiDim):
+def predict(img,theta,bins,useColor,multiDim,hists=True):
     colors = ("b", "g", "r")
     img = cv2.GaussianBlur(img, (15, 15), 0)
     img = cv2.resize(img, (400,400), interpolation=cv2.INTER_AREA)
 
-    if (useColor == False and multiDim == True):
+    if(hists==False):
+        X = img.flatten()
+
+    elif (useColor == False and multiDim == True):
         print("Can not use multidimensional histograms without color, using grayscale only instead")
 
-    if (useColor and multiDim):
+    elif (useColor and multiDim):
         X = (np.array(cv2.calcHist([img], [0, 1, 2], None, [bins, bins, bins], [0, 256, 0, 256, 0, 256])).flatten())
 
     elif (useColor == True and multiDim == False):
@@ -305,6 +312,9 @@ if __name__ == "__main__":
     print("cost: ")
     print(costfunction(X,y,theta)[0])
     answer = logisticTrain(X,y,theta,0.1,20,10)
+    output = open('LR.pkl','wb')
+    pickle.dump(answer,output)
+    output.close()
     print("theta final: ")
     print(answer)
 
@@ -323,26 +333,50 @@ if __name__ == "__main__":
     for img in Xtest[0:(150-trainNum)]:
         if(sigmoid(np.dot(img,answer))<0.5):
             correctEmpty+=1
-    print 1.0*correctEmpty/(150-trainNum)
+    print(1.0*correctEmpty/(150-trainNum))
     correctOcc = 0
     for img in Xtest[(150-trainNum):150]:
         if(sigmoid(np.dot(img,answer))>0.5):
             correctOcc+=1
-    print 1.0*correctOcc/(150-trainNum)
+    print(1.0*correctOcc/(150-trainNum))
+
+    print("\nScikit Learn Stuff")
+    print("SVM:")
+    emptySet = np.array(emptySet)
+    occupiedSet = np.array(occupiedSet)
+    rng = np.random.RandomState(1)
+    X = createData(np.concatenate((emptySet,occupiedSet),axis=0),32,color,multi,hists=True)
+    X = np.array(X)
+    y = np.concatenate((np.zeros(len(emptySet)),np.ones(len(occupiedSet))))
+
+    #randomize data order
+    ind = np.floor(rng.rand(len(X))*len(X)).astype(int)
+    X = X[ind]
+    y = y[ind]
+
+    print(np.shape(X))
+    print(y.shape)
+    clf = svm.SVC(C=1,kernel='linear')
+    print(clf.fit(X[0:200],y[0:200]).score(X[200:],y[200:]))
+
+    k = 3
+    Xfolds = np.array_split(X,k)
+    yfolds = np.array_split(y,k)
+    scores = []
 
 
-    # print(sigmoid(np.dot(Xtest[29],answer)))
-    # print(sigmoid(np.dot(Xtest[14], answer)))
-    # print(sigmoid(np.dot(Xtest[12],answer)))
-    # print(sigmoid(np.dot(Xtest[58], answer)))
-    # print(sigmoid(np.dot(Xtest[57],answer)))
-    # print(sigmoid(np.dot(Xtest[99], answer)))
+    for i in range(k):
+        Xtrain = list(Xfolds)
+        Xtest = Xtrain.pop(i)
+        ytrain = list(yfolds)
+        ytest = ytrain.pop(i)
 
+        Xtrain = np.concatenate(Xtrain)
+        ytrain = np.concatenate(ytrain)
 
+        scores.append(clf.fit(Xtrain,ytrain).score(Xtest,ytest))
 
-
-
-
+    print(scores)
 
 
 
@@ -404,6 +438,3 @@ if __name__ == "__main__":
     #         bestComb = value
     #
     # print bestComb
-
-
-
