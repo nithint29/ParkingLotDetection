@@ -1,15 +1,19 @@
 from Prepare import *
 from PolygonDrawer import *
 from time import time
+import pickle
 
 #numSamples = 150
 frameNum=0
-timeInterval = 60 #number of minutes between each capture
-auto =True
+timeInterval = 6000 #number of minutes between each capture
+auto =False
 startTime = time()
 
 #train on rawdata
-thetaFinal = trainOnFolder("rawdataset/empty","rawdataset/occupied",-1,32,True,True,lam=100)
+# thetaFinal = trainOnFolder("rawdataset/empty","rawdataset/occupied",-1,32,True,True,lam=100)
+pkl = open('LR.pkl', 'rb')
+thetaFinal = pickle.load(pkl)
+pkl.close()
 testFolder = loadFolder("spots_folder",False)
 
 
@@ -44,12 +48,12 @@ while(True):
             testImages = p.getRotateRect(coordList)
 
             for i, img in enumerate(testImages):
-                isOcc = predict(img, thetaFinal, 32, True, True)
+                isOcc = predict(img, thetaFinal, 32, True, True,usePixels=True)
                 initState.append(isOcc)
-                if (isOcc == 1):
-                    cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
-                elif (isOcc == 0):
-                    cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+                # if (isOcc == 1):
+                #     cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
+                # elif (isOcc == 0):
+                #     cv2.imwrite("spots_folder/generatedEmpty/" + "genImg{},{},{}".format(i, frameNum, int(startTime)) + ".jpg", img)
 
     initial = False
 
@@ -101,11 +105,12 @@ while(True):
 
         if (key & 0xFF == ord('p')):
             t = time()
+            print("saving frame")
             cv2.imwrite("spots_folder/frame{}.jpg".format(frameNum),frame)
             frameNum +=1
             testImages = p.getRotateRect(coordList)
             for i,img in enumerate(testImages):
-                isOcc = predict(img, thetaFinal, 32, True, True)
+                isOcc = predict(img, thetaFinal, 32, True, True,usePixels=True)
                 if(isOcc==1):
                     cv2.imwrite("spots_folder/generatedOccupied/"+"genImg{},{},{}".format(i,frameNum,int(t))+".jpg",img)
                 elif(isOcc==0):
@@ -127,7 +132,7 @@ while(True):
             testImages = p.getRotateRect(coordList)
             for i, img in enumerate(testImages):
 
-                isOcc = predict(img, thetaFinal, 32, True, True)
+                isOcc = predict(img, thetaFinal, 32, True, True,usePixels=True)
                 if (isOcc == 1):
                     cv2.imwrite("spots_folder/generatedOccupied/" + "genImg{},{},{}".format(i,frameNum,int(currTime))+".jpg",img)
                 elif (isOcc == 0):

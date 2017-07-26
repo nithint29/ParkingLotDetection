@@ -172,14 +172,14 @@ def logisticTrain(X,y,theta,alpha = 0.1,iter = 500,lam=0):
     return theta
 
 #generate training data from image list of color images
-def createData(imgList,bins = 64,useColor = False,multiDim = False,hists=True):
+def createData(imgList,bins = 64,useColor = False,multiDim = False,hists=True,usePixels=False,imgSize=100):
     trainData = []
     colors = ("b", "g", "r")
 
     if(useColor==False and multiDim == True):
         print("Can not use multidimensional histograms without color, using grayscale only instead")
 
-    for img in imgList:
+    for i,img in enumerate(imgList):
         if(hists == False):
             trainData.append(img.flatten())
 
@@ -197,11 +197,18 @@ def createData(imgList,bins = 64,useColor = False,multiDim = False,hists=True):
                 img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
             trainData.append(np.array(cv2.calcHist([img], [0], None, [bins], [0, 256])).flatten())
 
+        if (usePixels):
+            data = trainData.pop()
+            img_data = cv2.resize(img, (imgSize, imgSize))
+            data = np.concatenate((data.flatten(), img_data.flatten()))
+            trainData.append(data)
+
     return trainData
 
 #takes training data from input folder and outputs the resulting theta (with one extra dimension)
 #set trainNum = -1 to use whole folder
-def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 20,hists = True,lam=0):
+def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 50,hists = True,lam=0,usePixels=False,
+                  imgSize=100):
     # best 100,true,true,16
     emptySet = loadFolder(emptyFolder)
     occupiedSet = loadFolder(occupiedFolder)
@@ -213,8 +220,8 @@ def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0
         trainNumE = len(emptySet)
         trainNumO = len(occupiedSet)
 
-    trainX1 = createData(emptySet[0:trainNumE], bins, color, multi,hists=hists)
-    trainX2 = createData(occupiedSet[0:trainNumO], bins, color, multi,hists=hists)
+    trainX1 = createData(emptySet[0:trainNumE], bins, color, multi,hists=hists,usePixels=usePixels,imgSize=imgSize)
+    trainX2 = createData(occupiedSet[0:trainNumO], bins, color, multi,hists=hists,usePixels=usePixels,imgSize=imgSize)
     trainX = trainX1 + trainX2
     print(np.shape(trainX))
 
@@ -236,7 +243,7 @@ def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0
 
 
 #classifys input image given a trained theta and raw image
-def predict(img,theta,bins,useColor,multiDim,hists=True):
+def predict(img,theta,bins,useColor,multiDim,hists=True,usePixels=False,imgSize=100):
     colors = ("b", "g", "r")
     img = cv2.GaussianBlur(img, (15, 15), 0)
     img = cv2.resize(img, (400,400), interpolation=cv2.INTER_AREA)
@@ -261,15 +268,18 @@ def predict(img,theta,bins,useColor,multiDim,hists=True):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         X = (np.array(cv2.calcHist([img], [0], None, [bins], [0, 256])).flatten())
 
+    if (usePixels):
+        img_data = cv2.resize(img, (imgSize, imgSize))
+        X = np.concatenate((X, img_data.flatten()))
 
     Xbias = np.ones(np.shape(X)[0]+1)
     Xbias[1:(np.shape(Xbias)[0])] = X
     return (1 if (sigmoid(np.dot(Xbias,theta))>0.5) else 0)
 
-def predictSet(imgList,theta,bins,useColor,multiDim,hists=True):
+def predictSet(imgList,theta,bins,useColor,multiDim,hists=True,usePixels=False,imgSize=100):
     preds = []
     for img in imgList:
-        preds.append(predict(img,theta,bins,useColor,multiDim,hists=True))
+        preds.append(predict(img,theta,bins,useColor,multiDim,hists=True,usePixels=usePixels,imgSize=imgSize))
     return preds
 
 
@@ -293,9 +303,11 @@ if __name__ == "__main__":
     # regression
     emptySet = loadFolder("rawdataset/empty")
     occupiedSet = loadFolder("rawdataset/occupied")
+    print(len(emptySet))
+    print(len(occupiedSet))
 
     #best 100,true,true,16
-    trainNum = 100
+    trainNum = 200
     color = True
     multi = True
     bins = 32
@@ -318,44 +330,48 @@ if __name__ == "__main__":
 
     print("cost: ")
     print(costfunction(X,y,theta)[0])
-    answer = logisticTrain(X,y,theta,0.1,20,10)
+    answer = logisticTrain(X,y,theta,0.1,50,10)
     print("theta final: ")
     print(answer)
 
-    testX1 = createData(emptySet[trainNum:150],bins,color,multi)
-    testX2 = createData(occupiedSet[trainNum:150],bins,color,multi)
+    testX1 = createData(emptySet[trainNum:],bins,color,multi)
+    testX2 = createData(occupiedSet[trainNum:],bins,color,multi)
     testX = testX1+testX2
     Xtest = np.ones((np.shape(testX)[0], np.shape(testX)[1] + 1))
     Xtest[:, 1:X.shape[1]] = testX
     print(np.shape(testX))
-    y1test = np.zeros((len(Xtest)/2,1))
-    y2test = np.ones((len(Xtest)/2,1))
+    y1test = np.zeros((len(testX1),1))
+    y2test = np.ones((len(testX2),1))
     ytest = np.concatenate((y1test,y2test),axis = 0)
     print(np.shape(ytest))
 
     correctEmpty = 0
-    for img in Xtest[0:(150-trainNum)]:
-        if(sigmoid(np.dot(img,answer))<0.5):
-            correctEmpty+=1
-    print(1.0*correctEmpty/(150-trainNum))
     correctOcc = 0
-    for img in Xtest[(150-trainNum):150]:
-        if(sigmoid(np.dot(img,answer))>0.5):
+    for i,img in enumerate(Xtest):
+        if(sigmoid(np.dot(img,answer))<0.5 and ytest[i]==0):
+            correctEmpty+=1
+        elif(sigmoid(np.dot(img,answer))>0.5 and ytest[i]==1):
             correctOcc+=1
-    print(1.0*correctOcc/(150-trainNum))
+
+    print(len(testX1),correctEmpty,len(testX2),correctOcc)
+    print(1.0*correctEmpty/(len(testX1)))
+    print(1.0*correctOcc/(len(testX2)))
     print("\n")
 
     #Testing on spots_folder
-    thetaFinal = trainOnFolder("rawdataset/empty", "rawdataset/occupied", -1, 32, True, True, lam=100)
-    testFolder = loadFolder("spots_folder", False)
+    #thetaFinal = trainOnFolder("rawdataset/empty", "rawdataset/occupied", -1, 32, True, True, lam=100,usePixels=True,iters=100)
+    #testFolder = loadFolder("spots_folder", False)
     #Save theta values to file
-    output = open('LR.pkl','wb')
-    pickle.dump(thetaFinal,output)
-    output.close()
+    # output = open('LR.pkl','wb')
+    # pickle.dump(thetaFinal,output)
+    # output.close()
+    read = open('LR.pkl', 'rb')
+    thetaFinal = pickle.load(read)
+    read.close()
     testEmpty = np.array(loadFolder("spots_folder/generatedEmpty",False))
     testOcc = np.array(loadFolder("spots_folder/generatedOccupied",False))
-    print("Empty correct: {}".format(np.sum(np.array(predictSet(testEmpty,thetaFinal, 32, True, True))==0)/(1.0*len(testEmpty))))
-    print("Occupied correct: {} \n".format(np.sum(predictSet(testOcc, thetaFinal, 32, True, True)) / (1.0 * len(testOcc))))
+    print("Empty correct: {}".format(np.sum(np.array(predictSet(testEmpty,thetaFinal, 32, True, True,usePixels=True))==0)/(1.0*len(testEmpty))))
+    print("Occupied correct: {} \n".format(np.sum(predictSet(testOcc, thetaFinal, 32, True, True,usePixels=True)) / (1.0 * len(testOcc))))
 
 
 
@@ -364,7 +380,7 @@ if __name__ == "__main__":
     emptySet = np.array(emptySet)
     occupiedSet = np.array(occupiedSet)
     rng = np.random.RandomState(5)
-    X = createData(np.concatenate((emptySet,occupiedSet),axis=0),32,color,multi,hists=True)
+    X = createData(np.concatenate((emptySet,occupiedSet),axis=0),32,color,multi,hists=True,usePixels=True)
     X = np.array(X)
     y = np.concatenate((np.zeros(len(emptySet)),np.ones(len(occupiedSet))))
     print(len(emptySet))

@@ -80,28 +80,52 @@ class SmartParking:
                 spot_feature = spot_feature.reshape((1,len(spot_feature)))
                 isEmpty = self.__svm_model.predict(spot_feature)
                 if(isEmpty[0] == 0):
-                    plt.imshow(spot, cmap = 'gray', interpolation = 'bicubic')
-                    plt.xticks([]), plt.yticks([])
-                    plt.show()
+                    # plt.imshow(spot, cmap = 'gray', interpolation = 'bicubic')
+                    # plt.xticks([]), plt.yticks([])
+                    # plt.show()
                     emptySpots.append(i)
                     print ("Spot " + str(self.current_pos) + "-" + str(i) + " is empty")
             elif(self.__uselr):
-                status = predict(spot,self.thetaFinal,32,True,True)
+                status = predict(spot,self.thetaFinal,32,True,True,usePixels=True)
                 if(status == 0):
                     emptySpots.append(i)
                     print ("Spot " + str(self.current_pos) + "-" + str(i) + " is empty - LR")
-                    cv2.imshow("Empty Spot",spot)
-                    cv2.waitKey(0)
+                    # cv2.imshow("Empty Spot",spot)
+                    # cv2.waitKey(0)
         return emptySpots
 
 
 
 if __name__ == "__main__":
+
     s = SmartParking()
+    emptySpots = []
+    parkingInfo = []
+    img_name_list = ["./static/images/view1.png", "./static/images/view2.png", "./static/images/view7.png"]
+
     img_list = []
-    img0 = cv2.imread("parkingImage/view7.png", cv2.IMREAD_COLOR)
+    img0 = cv2.imread(img_name_list[0], cv2.IMREAD_COLOR)
+    img1 = cv2.imread(img_name_list[1], cv2.IMREAD_COLOR)
+    img2 = cv2.imread(img_name_list[2], cv2.IMREAD_COLOR)
+
     img_list.append(img0)
+    img_list.append(img1)
+    img_list.append(img2)
+
     s.initial(img_list, "test")
-    # s.initialFromFolder("test")
-    s.process(img0,0)
+
+    for i in range(3):
+        temp = s.process(img_list[i], i)
+        if len(temp) == 0:
+            info = "There are no empty spots in parking lot " + str(i) + "."
+        else:
+            info = ""
+            for j, spot in enumerate(temp):
+                info = info + "spot" + str(i) + "_" + str(spot)
+                if j != len(temp) - 1:
+                    info += ", "
+            info += " now empty"
+        parkingInfo.append(info)
+
+    print parkingInfo
 

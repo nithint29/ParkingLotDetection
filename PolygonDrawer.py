@@ -53,6 +53,10 @@ class PolygonDrawer(object):
             pts = np.array(self.polyPoints,np.int32)#.reshape((-1,1,2))
             #cv2.polylines(self.image,[pts],True,(255,255,255))
             cv2.fillPoly(self.image,[pts],(255,255,255))
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            avg_point = np.mean(pts,axis=0)
+            print(avg_point)
+            cv2.putText(self.image, str(len(self.POINTS)), tuple(avg_point.astype(int)), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
             self.POINTS.append(self.polyPoints)
             self.polyPoints = [None]*4
             self.i = 0
@@ -210,6 +214,6 @@ if __name__ == "__main__":
     #print("hello world")
     img = cv2.imread("parking_example.png")
     p = PolygonDrawer("poly",img,"coordinates.txt","spots_folder")
-    p.run()
+    p.run(saveImages=False)
 
 
