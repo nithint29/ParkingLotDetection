@@ -107,7 +107,6 @@ class PolygonDrawer(object):
             cv2.fillPoly(self.image, [pts], (255, 255, 255))
             font = cv2.FONT_HERSHEY_SIMPLEX
             avg_point = np.mean(pts, axis=0)
-            print(avg_point)
             cv2.putText(self.image, str(i), tuple(avg_point.astype(int)), font, 1, (0, 0, 255), 2,
                         cv2.LINE_AA)
             if(polygon !=None):

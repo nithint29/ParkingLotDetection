@@ -172,7 +172,7 @@ def logisticTrain(X,y,theta,alpha = 0.1,iter = 500,lam=0):
     return theta
 
 #generate training data from image list of color images
-def createData(imgList,bins = 64,useColor = False,multiDim = False,hists=True,usePixels=False,imgSize=100):
+def createData(imgList,bins = 64,useColor = False,multiDim = False,hists=True,usePixels=True,imgSize=100):
     trainData = []
     colors = ("b", "g", "r")
 
@@ -207,7 +207,7 @@ def createData(imgList,bins = 64,useColor = False,multiDim = False,hists=True,us
 
 #takes training data from input folder and outputs the resulting theta (with one extra dimension)
 #set trainNum = -1 to use whole folder
-def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 50,hists = True,lam=0,usePixels=False,
+def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0.1,iters = 50,hists = True,lam=0,usePixels=True,
                   imgSize=100):
     # best 100,true,true,16
     emptySet = loadFolder(emptyFolder)
@@ -243,7 +243,7 @@ def trainOnFolder(emptyFolder,occupiedFolder,trainNum,bins,color,multi,alpha = 0
 
 
 #classifys input image given a trained theta and raw image
-def predict(img,theta,bins,useColor,multiDim,hists=True,usePixels=False,imgSize=100):
+def predict(img,theta,bins,useColor,multiDim,hists=True,usePixels=True,imgSize=100):
     colors = ("b", "g", "r")
     img = cv2.GaussianBlur(img, (15, 15), 0)
     img = cv2.resize(img, (400,400), interpolation=cv2.INTER_AREA)
@@ -276,7 +276,7 @@ def predict(img,theta,bins,useColor,multiDim,hists=True,usePixels=False,imgSize=
     Xbias[1:(np.shape(Xbias)[0])] = X
     return (1 if (sigmoid(np.dot(Xbias,theta))>0.5) else 0)
 
-def predictSet(imgList,theta,bins,useColor,multiDim,hists=True,usePixels=False,imgSize=100):
+def predictSet(imgList,theta,bins,useColor,multiDim,hists=True,usePixels=True,imgSize=100):
     preds = []
     for img in imgList:
         preds.append(predict(img,theta,bins,useColor,multiDim,hists=True,usePixels=usePixels,imgSize=imgSize))

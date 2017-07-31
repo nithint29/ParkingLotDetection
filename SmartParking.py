@@ -32,7 +32,7 @@ class SmartParking:
         pkl.close()
         #initialize camera setting
         self.streamURL = "rtsp://bigbrother.winlab.rutgers.edu/stream1"
-        self.mycam = ONVIFCamera('192.168.204.111', 80, 'admin', 'admin', 'F:/Anaconda2/wsdl/')
+        self.mycam = ONVIFCamera('192.168.204.111', 80, 'admin', 'admin', 'C:/Users/basis_000/Anaconda2/wsdl/')
         self.pos = [{'_x': -0.2, '_y': 0.5} , {'_x': -0.03, '_y': 0.55}, {'_x': 0.07, '_y': 0.6}]
 
     #initialize from image list and file folder
@@ -98,6 +98,13 @@ class SmartParking:
                     print ("Spot " + str(self.current_pos) + "-" + str(i) + " is empty - LR")
                     # cv2.imshow("Empty Spot",spot)
                     # cv2.waitKey(0)
+                else:
+                    pts = np.array(polygon, np.int32)
+                    cv2.fillPoly(self.image, [pts], (255, 255, 255))
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    avg_point = np.mean(pts, axis=0)
+                    cv2.putText(self.image, str(i), tuple(avg_point.astype(int)), font, 1, (0, 0, 255), 2,
+                                cv2.LINE_AA)
         return emptySpots
 
     #camera control
