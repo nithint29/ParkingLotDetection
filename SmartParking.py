@@ -7,6 +7,8 @@ from detection import *
 from Prepare import *
 import os
 import pickle
+from time import sleep
+from onvif import ONVIFCamera
 
 class SmartParking:
     '''
@@ -28,6 +30,10 @@ class SmartParking:
         pkl = open('LR.pkl','rb')
         self.thetaFinal = pickle.load(pkl)
         pkl.close()
+        #initialize camera setting
+        self.streamURL = "rtsp://bigbrother.winlab.rutgers.edu/stream1"
+        self.mycam = ONVIFCamera('192.168.204.111', 80, 'admin', 'admin', 'F:/Anaconda2/wsdl/')
+        self.pos = [{'_x': -0.2, '_y': 0.5} , {'_x': -0.03, '_y': 0.55}, {'_x': 0.07, '_y': 0.6}]
 
     #initialize from image list and file folder
     def initial(self, img_list, file_folder):
@@ -86,7 +92,7 @@ class SmartParking:
                     emptySpots.append(i)
                     print ("Spot " + str(self.current_pos) + "-" + str(i) + " is empty")
             elif(self.__uselr):
-                status = predict(spot,self.thetaFinal,32,True,True,usePixels=True)
+                status = predict(spot,self.thetaFinal,32,True,True)
                 if(status == 0):
                     emptySpots.append(i)
                     print ("Spot " + str(self.current_pos) + "-" + str(i) + " is empty - LR")
@@ -94,16 +100,45 @@ class SmartParking:
                     # cv2.waitKey(0)
         return emptySpots
 
+    #camera control
+    def getImageFromCamera(self):
+        # Create media service object
+        media = self.mycam.create_media_service()
+        # Create ptz service object
+        ptz = self.mycam.create_ptz_service()
+        # Get target profile
+        media_profile = media.GetProfiles()[0]
+        request = ptz.create_type('AbsoluteMove')
+        request.ProfileToken = media_profile._token
+
+        img_list = []
+        #pos 0
+        for i,pos in enumerate(self.pos):
+            request.Position.PanTilt = pos
+            ptz.AbsoluteMove(request)
+            sleep(2)
+            cap = cv2.VideoCapture(self.streamURL)
+            ret, frame = cap.read()
+            cv2.imwrite("./static/images/camera" + "{:03d}".format(i) + ".jpg", frame)
+            img_list.append(frame)
+        return img_list
+
+
 
 
 if __name__ == "__main__":
-
     s = SmartParking()
     emptySpots = []
     parkingInfo = []
-    img_name_list = ["./static/images/view1.png", "./static/images/view2.png", "./static/images/view7.png"]
-
     img_list = []
+
+    # img_list.append(img0)
+    # img_list.append(img1)
+    # img_list.append(img2)
+    s.initial(img_list, "test")
+    s.getImageFromCamera()
+    img_name_list = ["./static/images/camera000.jpg", "./static/images/camera001.jpg", "./static/images/camera002.jpg"]
+
     img0 = cv2.imread(img_name_list[0], cv2.IMREAD_COLOR)
     img1 = cv2.imread(img_name_list[1], cv2.IMREAD_COLOR)
     img2 = cv2.imread(img_name_list[2], cv2.IMREAD_COLOR)
@@ -111,8 +146,6 @@ if __name__ == "__main__":
     img_list.append(img0)
     img_list.append(img1)
     img_list.append(img2)
-
-    s.initial(img_list, "test")
 
     for i in range(3):
         temp = s.process(img_list[i], i)
@@ -124,8 +157,7 @@ if __name__ == "__main__":
                 info = info + "spot" + str(i) + "_" + str(spot)
                 if j != len(temp) - 1:
                     info += ", "
-            info += " now empty"
+            info += " are empty"
         parkingInfo.append(info)
-
     print parkingInfo
 
