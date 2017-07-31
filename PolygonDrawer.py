@@ -70,7 +70,7 @@ class PolygonDrawer(object):
 
 
     def run(self,saveImages=True):
-        cv2.namedWindow(self.windowName)
+        cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
         cv2.setMouseCallback(self.windowName,self.place_poly)
 
         while(1):
@@ -102,10 +102,16 @@ class PolygonDrawer(object):
     #
     def loadPointsOntoImage(self):
         self.image = np.copy(self.originalImage)
-        for polygon in self.POINTS:
+        for i,polygon in enumerate(self.POINTS):
+            pts = np.array(polygon, np.int32)
+            cv2.fillPoly(self.image, [pts], (255, 255, 255))
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            avg_point = np.mean(pts, axis=0)
+            print(avg_point)
+            cv2.putText(self.image, str(i), tuple(avg_point.astype(int)), font, 1, (0, 0, 255), 2,
+                        cv2.LINE_AA)
             if(polygon !=None):
                 for point in polygon:
-
                     cv2.circle(self.image, (int(point[0]),int(point[1])), 5, (255, 0, 0), -1)
 
     def four_point_transform(self, coordinate):
@@ -152,11 +158,6 @@ class PolygonDrawer(object):
             warped_img_lists.append(warped)
         return warped_img_lists
 
-
-
-
-    def loadFromDict(self):
-        print "hi"
 
     #save polygon data to text file
     def saveSpotsCoordinates(self):
@@ -212,7 +213,7 @@ class PolygonDrawer(object):
 
 if __name__ == "__main__":
     #print("hello world")
-    img = cv2.imread("parking_example.png")
+    img = cv2.imread("camera002.jpg")
     p = PolygonDrawer("poly",img,"coordinates.txt","spots_folder")
     p.run(saveImages=False)
 
