@@ -85,6 +85,7 @@ class PolygonDrawer(object):
             key = cv2.waitKey(20)
             if key & 0xFF == 27:
                 self.saveSpotsCoordinates()
+                #cv2.imwrite("labeledPic.jpg", self.image)
                 if(saveImages==True):
                     self.saveImageList(self.getRotateRect(self.POINTS))
                 break
@@ -94,6 +95,7 @@ class PolygonDrawer(object):
                 self.POINTS=[]
                 self.readSpotsCoordinates(self.FILE_NAME)
                 self.loadPointsOntoImage()
+                #cv2.imwrite("labeledPic.jpg",self.image)
 
         cv2.destroyAllWindows()
         return

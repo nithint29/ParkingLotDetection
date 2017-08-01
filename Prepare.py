@@ -359,17 +359,17 @@ if __name__ == "__main__":
     print("\n")
 
     #Testing on spots_folder
-    #thetaFinal = trainOnFolder("rawdataset/empty", "rawdataset/occupied", -1, 32, True, True, lam=100,usePixels=True,iters=100)
+    thetaFinal = trainOnFolder("rawdataset/empty", "rawdataset/occupied", -1, 32, True, True, lam=100,usePixels=True,iters=100)
     #testFolder = loadFolder("spots_folder", False)
     #Save theta values to file
-    # output = open('LR.pkl','wb')
-    # pickle.dump(thetaFinal,output)
-    # output.close()
-    read = open('LR.pkl', 'rb')
-    thetaFinal = pickle.load(read)
-    read.close()
-    testEmpty = np.array(loadFolder("spots_folder/generatedEmpty",False))
-    testOcc = np.array(loadFolder("spots_folder/generatedOccupied",False))
+    output = open('LR.pkl','wb')
+    pickle.dump(thetaFinal,output)
+    output.close()
+    # read = open('LR.pkl', 'rb')
+    # thetaFinal = pickle.load(read)
+    # read.close()
+    testEmpty = np.array(loadFolder("rawdataset/empty",False))
+    testOcc = np.array(loadFolder("rawdataset/occupied",False))
     print("Empty correct: {}".format(np.sum(np.array(predictSet(testEmpty,thetaFinal, 32, True, True,usePixels=True))==0)/(1.0*len(testEmpty))))
     print("Occupied correct: {} \n".format(np.sum(predictSet(testOcc, thetaFinal, 32, True, True,usePixels=True)) / (1.0 * len(testOcc))))
 

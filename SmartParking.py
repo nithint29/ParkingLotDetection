@@ -54,6 +54,8 @@ class SmartParking:
                 print("making folders")
             p = PolygonDrawer("poly", img,coordinate_path,mydir+"/spots_folder{}".format(i))
             p.run()
+            # p.readSpotsCoordinates(coordinate_path)
+            # p.saveImageList()
             self.__camera_position.append(i)
 
         #assign the svm model classifier
@@ -72,7 +74,6 @@ class SmartParking:
         # find the correspond camera position's ROI coordinates
         file_name = self.__file_folder + "/coordinates/coordinate_" + "{:03d}".format(pos) + ".txt"
         self.__current_coordinate_list = readSpotsCoordinates(file_name)
-        print self.__current_coordinate_list
         self.__spots_list = getRotateRect(self.current_image, self.__current_coordinate_list)
 
         length = len(self.__spots_list)
@@ -96,15 +97,15 @@ class SmartParking:
                 if(status == 0):
                     emptySpots.append(i)
                     print ("Spot " + str(self.current_pos) + "-" + str(i) + " is empty - LR")
-                    # cv2.imshow("Empty Spot",spot)
-                    # cv2.waitKey(0)
-                else:
-                    pts = np.array(polygon, np.int32)
-                    cv2.fillPoly(self.image, [pts], (255, 255, 255))
+                    pts = np.array(self.__current_coordinate_list[i], np.int32)  # .reshape((-1,1,2))
+                    cv2.fillPoly(self.current_image, [pts], (0, 255, 0))
                     font = cv2.FONT_HERSHEY_SIMPLEX
                     avg_point = np.mean(pts, axis=0)
-                    cv2.putText(self.image, str(i), tuple(avg_point.astype(int)), font, 1, (0, 0, 255), 2,
-                                cv2.LINE_AA)
+                    cv2.putText(self.current_image, str(i), tuple(avg_point.astype(int)), font, 1, (0, 0, 255),
+                                2, cv2.LINE_AA)
+                    cv2.imwrite("./static/images/labeled{:03d}.jpg".format(pos), self.current_image)
+                    # cv2.imshow("Empty Spot",spot)
+                    # cv2.waitKey(0)
         return emptySpots
 
     #camera control
@@ -145,7 +146,7 @@ if __name__ == "__main__":
     s.initial(img_list, "test")
     s.getImageFromCamera()
     img_name_list = ["./static/images/camera000.jpg", "./static/images/camera001.jpg", "./static/images/camera002.jpg"]
-
+    #img_name_list = ["./labeled000.jpg", "./labeled001.jpg", "./labeled002.jpg"]
     img0 = cv2.imread(img_name_list[0], cv2.IMREAD_COLOR)
     img1 = cv2.imread(img_name_list[1], cv2.IMREAD_COLOR)
     img2 = cv2.imread(img_name_list[2], cv2.IMREAD_COLOR)
@@ -153,6 +154,7 @@ if __name__ == "__main__":
     img_list.append(img0)
     img_list.append(img1)
     img_list.append(img2)
+    s.initial(img_list, "test")
 
     for i in range(3):
         temp = s.process(img_list[i], i)

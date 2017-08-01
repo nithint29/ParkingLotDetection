@@ -21,7 +21,9 @@ def index():
     # img_list.append(img2)
     s.initial(img_list, "test")
     s.getImageFromCamera()
+
     img_name_list = ["./static/images/camera000.jpg", "./static/images/camera001.jpg", "./static/images/camera002.jpg"]
+    #img_name_list = ["./labeled000.jpg", "./labeled001.jpg", "./labeled002.jpg"]
 
     img0 = cv2.imread(img_name_list[0], cv2.IMREAD_COLOR)
     img1 = cv2.imread(img_name_list[1], cv2.IMREAD_COLOR)
@@ -44,7 +46,7 @@ def index():
             info += " are empty"
         parkingInfo.append(info)
     print parkingInfo
-
+    img_name_list = ["./static/images/labeled000.jpg", "./static/images/labeled001.jpg", "./static/images/labeled002.jpg"]
     return render_template('index.html', img_name =  img_name_list, parkingInfo = parkingInfo)
 
 
